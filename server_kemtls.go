@@ -108,7 +108,7 @@ func initServer() *tls.Config {
 
 	maxTTL, _ := time.ParseDuration("24h")
 	validTime := maxTTL + time.Now().Sub(dcCertP256.Leaf.NotBefore)
-	dc, priv, err := tls.NewDelegatedCredential(dcCertP256, tls.KEMTLSWithKyber512, validTime, false)
+	dc, priv, err := tls.NewDelegatedCredential(dcCertP256, tls.KEMTLSWithKyber512X25519, validTime, false)
 	if err != nil {
 		panic(err)
 	}
@@ -263,8 +263,14 @@ func main() {
 		log.Println("Failure while trying to use kemtls with dcs")
 	} else {
 		log.Println("")
-		log.Println("Success using kemtls (kem: kyber512, kemSig: kyber512) with dc")
+		// log.Println("Success using kemtls (kem: kyber512, kemSig: kyber512) with dc")
+		/* -------------------------------- Modified -------------------------------- */
+		log.Println("Success using kemtls with dc")
+		/* ----------------------------------- End ---------------------------------- */
 	}
+	/* -------------------------------- Modified -------------------------------- */
+	fmt.Printf("\n\n")
+	/* ----------------------------------- End ---------------------------------- */
 
 	clientConfig.CachedCert = cconn.CertificateMessage
 	ts, dc, kemtls, _, _, err = testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "server")
@@ -292,6 +298,9 @@ func main() {
 		log.Println(err.Error())
 	} else {
 		log.Println("")
-		log.Println("Success using pdk-kemtls (kem: kyber512, kemSig: kyber512) with dc")
+		// log.Println("Success using pdk-kemtls (kem: kyber512, kemSig: kyber512) with dc")
+		/* -------------------------------- Modified -------------------------------- */
+		log.Println("Success using pdk-kemtls with dc")
+		/* ----------------------------------- End ---------------------------------- */
 	}
 }
