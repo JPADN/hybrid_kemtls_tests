@@ -62,7 +62,30 @@ const (
 	testDcMaxTTL        = time.Duration(testDcMaxTTLSeconds * time.Second)
 )
 
-func initServer() *tls.Config {
+var hsAlgorithms = []tls.CurveID{tls.Kyber512X25519, tls.Kyber768X448, tls.Kyber1024X448, tls.SIKEp434X25519, tls.SIKEp503X448, tls.SIKEp751X448}
+
+func dcFromCurveId(curveId tls.CurveID) tls.SignatureScheme{
+	var scheme tls.SignatureScheme
+
+	switch curveId {
+	case tls.Kyber512X25519:
+		scheme = tls.KEMTLSWithKyber512X25519	
+	case tls.Kyber768X448:
+		scheme = tls.KEMTLSWithKyber768X448	
+	case tls.Kyber1024X448:
+		scheme = tls.KEMTLSWithKyber1024X448
+	case tls.SIKEp434X25519:
+		scheme = tls.KEMTLSWithSIKEp434X25519
+	case tls.SIKEp503X448:
+		scheme = tls.KEMTLSWithSIKEp503X448
+	case tls.SIKEp751X448:
+		scheme = tls.KEMTLSWithSIKEp751X448
+	}
+	return scheme
+}
+
+
+func initServer(dcAlgo tls.SignatureScheme) *tls.Config {
 	rootCertP256 := new(tls.Certificate)
 	// The delegation P256 certificate.
 	dcCertP256 := new(tls.Certificate)
@@ -108,7 +131,9 @@ func initServer() *tls.Config {
 
 	maxTTL, _ := time.ParseDuration("24h")
 	validTime := maxTTL + time.Now().Sub(dcCertP256.Leaf.NotBefore)
-	dc, priv, err := tls.NewDelegatedCredential(dcCertP256, tls.KEMTLSWithKyber512X25519, validTime, false)
+
+	// Select here the algorithm to be used in the DC authentication
+	dc, priv, err := tls.NewDelegatedCredential(dcCertP256, dcAlgo, validTime, false)
 	if err != nil {
 		panic(err)
 	}
@@ -225,82 +250,92 @@ func main() {
 	serverMsg := "hello, client"
 	clientMsg := "hello, server"
 
-	serverConfig := initServer()
-	clientConfig := initClient()
+	for _, curveId := range hsAlgorithms {
 
-	ts, dc, kemtls, cconn, _, err := testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "client")
+		dcAlgo := dcFromCurveId(curveId)
 
-	fmt.Println("Client")
-	fmt.Printf("|--> Write Client Hello       %v \n", ts.clientTimingInfo.WriteClientHello)
-	fmt.Println("   Server")
-	fmt.Printf("   | Receive Client Hello     %v \n", ts.serverTimingInfo.ProcessClientHello)
-	fmt.Printf("   | Write Server Hello       %v \n", ts.serverTimingInfo.WriteServerHello)
-	fmt.Printf("   | Write Server Enc Exts    %v \n", ts.serverTimingInfo.WriteEncryptedExtensions)
-	fmt.Printf("<--| Write Server Certificate %v \n", ts.serverTimingInfo.WriteCertificate)
+		serverConfig := initServer(dcAlgo)
+		clientConfig := initClient()
+		
+		// Select here the algorithm to be used in the KEX
+		serverConfig.CurvePreferences = []tls.CurveID{curveId}
+		clientConfig.CurvePreferences = []tls.CurveID{curveId}
+		
+		fmt.Printf("------------- KEMTLS -------------\n\n")
 
-	fmt.Println("Client")
-	fmt.Printf("-->| Process Server Hello       %v \n", ts.clientTimingInfo.ProcessServerHello)
-	fmt.Printf("   | Receive Server Enc Exts    %v \n", ts.clientTimingInfo.ReadEncryptedExtensions)
-	fmt.Printf("   | Receive Server Certificate %v \n", ts.clientTimingInfo.ReadCertificate)
-	fmt.Printf("   | Write KEM Ciphertext       %v \n", ts.clientTimingInfo.WriteKEMCiphertext)
-	fmt.Printf("<--| Write Client Finished      %v \n", ts.clientTimingInfo.WriteClientFinished)
+		ts, dc, kemtls, cconn, _, err := testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "client")
 
-	fmt.Println("   Server")
-	fmt.Printf("-->| Receive KEM Ciphertext     %v \n", ts.serverTimingInfo.ReadKEMCiphertext)
-	fmt.Printf("   | Receive Client Finished    %v \n", ts.serverTimingInfo.ReadClientFinished)
-	fmt.Printf("<--| Write Server Finished      %v \n", ts.serverTimingInfo.WriteServerFinished)
+		fmt.Println("Client")
+		fmt.Printf("|--> Write Client Hello       %v \n", ts.clientTimingInfo.WriteClientHello)
+		fmt.Println("   Server")
+		fmt.Printf("   | Receive Client Hello     %v \n", ts.serverTimingInfo.ProcessClientHello)
+		fmt.Printf("   | Write Server Hello       %v \n", ts.serverTimingInfo.WriteServerHello)
+		fmt.Printf("   | Write Server Enc Exts    %v \n", ts.serverTimingInfo.WriteEncryptedExtensions)
+		fmt.Printf("<--| Write Server Certificate %v \n", ts.serverTimingInfo.WriteCertificate)
 
-	fmt.Println("Client")
-	fmt.Printf("-->| Process Server Finshed       %v \n", ts.clientTimingInfo.ReadServerFinished)
-	fmt.Printf("Client Total time: %v \n", ts.clientTimingInfo.FullProtocol)
-	fmt.Printf("Server Total time: %v \n", ts.serverTimingInfo.FullProtocol)
+		fmt.Println("Client")
+		fmt.Printf("-->| Process Server Hello       %v \n", ts.clientTimingInfo.ProcessServerHello)
+		fmt.Printf("   | Receive Server Enc Exts    %v \n", ts.clientTimingInfo.ReadEncryptedExtensions)
+		fmt.Printf("   | Receive Server Certificate %v \n", ts.clientTimingInfo.ReadCertificate)
+		fmt.Printf("   | Write KEM Ciphertext       %v \n", ts.clientTimingInfo.WriteKEMCiphertext)
+		fmt.Printf("<--| Write Client Finished      %v \n", ts.clientTimingInfo.WriteClientFinished)
 
-	if err != nil {
-		log.Println("")
-		log.Println(err.Error())
-	} else if !dc && !kemtls {
-		log.Println("")
-		log.Println("Failure while trying to use kemtls with dcs")
-	} else {
-		log.Println("")
-		// log.Println("Success using kemtls (kem: kyber512, kemSig: kyber512) with dc")
-		/* -------------------------------- Modified -------------------------------- */
-		log.Println("Success using kemtls with dc")
-		/* ----------------------------------- End ---------------------------------- */
-	}
-	/* -------------------------------- Modified -------------------------------- */
-	fmt.Printf("\n\n")
-	/* ----------------------------------- End ---------------------------------- */
+		fmt.Println("   Server")
+		fmt.Printf("-->| Receive KEM Ciphertext     %v \n", ts.serverTimingInfo.ReadKEMCiphertext)
+		fmt.Printf("   | Receive Client Finished    %v \n", ts.serverTimingInfo.ReadClientFinished)
+		fmt.Printf("<--| Write Server Finished      %v \n", ts.serverTimingInfo.WriteServerFinished)
 
-	clientConfig.CachedCert = cconn.CertificateMessage
-	ts, dc, kemtls, _, _, err = testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "server")
+		fmt.Println("Client")
+		fmt.Printf("-->| Process Server Finshed       %v \n", ts.clientTimingInfo.ReadServerFinished)
+		fmt.Printf("Client Total time: %v \n", ts.clientTimingInfo.FullProtocol)
+		fmt.Printf("Server Total time: %v \n", ts.serverTimingInfo.FullProtocol)
 
-	fmt.Println("Client")
-	fmt.Printf("|--> Write Client Hello       %v \n", ts.clientTimingInfo.WriteClientHello)
-	fmt.Println("   Server")
-	fmt.Printf("   | Receive Client Hello     %v \n", ts.serverTimingInfo.ProcessClientHello)
-	fmt.Printf("   | Write Server Hello       %v \n", ts.serverTimingInfo.WriteServerHello)
-	fmt.Printf("   | Write Server Enc Exts    %v \n", ts.serverTimingInfo.WriteEncryptedExtensions)
-	fmt.Printf("<--| Write Server Finished    %v \n", ts.serverTimingInfo.WriteServerFinished)
-	fmt.Println("Client")
-	fmt.Printf("-->| Process Server Hello       %v \n", ts.clientTimingInfo.ProcessServerHello)
-	fmt.Printf("   | Receive Server Enc Exts    %v \n", ts.clientTimingInfo.ReadEncryptedExtensions)
-	fmt.Printf("-->| Process Server Finished    %v \n", ts.clientTimingInfo.ReadServerFinished)
-	fmt.Printf("<--| Write Client Finished      %v \n", ts.clientTimingInfo.WriteClientFinished)
-	fmt.Println("   Server")
-	fmt.Printf("-->| Receive Client Finished    %v \n", ts.serverTimingInfo.ReadClientFinished)
-	fmt.Println("Client")
-	fmt.Printf("Client Total time: %v \n", ts.clientTimingInfo.FullProtocol)
-	fmt.Printf("Server Total time: %v \n", ts.serverTimingInfo.FullProtocol)
+		if err != nil {
+			log.Println("")
+			log.Println(err.Error())
+		} else if !dc && !kemtls {
+			log.Println("")
+			log.Println("Failure while trying to use kemtls with dcs")
+		} else {
+			log.Println("")
+			// log.Println("Success using kemtls (kem: kyber512, kemSig: kyber512) with dc")
+			/* -------------------------------- Modified -------------------------------- */
+			log.Println("Success using kemtls with dc")
+			/* ----------------------------------- End ---------------------------------- */
+		}
+	
+		fmt.Printf("\n------------- KEMTLS PDK -------------\n\n")
+		
+		clientConfig.CachedCert = cconn.CertificateMessage
+		ts, dc, kemtls, _, _, err = testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "server")
 
-	if err != nil {
-		log.Println("")
-		log.Println(err.Error())
-	} else {
-		log.Println("")
-		// log.Println("Success using pdk-kemtls (kem: kyber512, kemSig: kyber512) with dc")
-		/* -------------------------------- Modified -------------------------------- */
-		log.Println("Success using pdk-kemtls with dc")
-		/* ----------------------------------- End ---------------------------------- */
+		fmt.Println("Client")
+		fmt.Printf("|--> Write Client Hello       %v \n", ts.clientTimingInfo.WriteClientHello)
+		fmt.Println("   Server")
+		fmt.Printf("   | Receive Client Hello     %v \n", ts.serverTimingInfo.ProcessClientHello)
+		fmt.Printf("   | Write Server Hello       %v \n", ts.serverTimingInfo.WriteServerHello)
+		fmt.Printf("   | Write Server Enc Exts    %v \n", ts.serverTimingInfo.WriteEncryptedExtensions)
+		fmt.Printf("<--| Write Server Finished    %v \n", ts.serverTimingInfo.WriteServerFinished)
+		fmt.Println("Client")
+		fmt.Printf("-->| Process Server Hello       %v \n", ts.clientTimingInfo.ProcessServerHello)
+		fmt.Printf("   | Receive Server Enc Exts    %v \n", ts.clientTimingInfo.ReadEncryptedExtensions)
+		fmt.Printf("-->| Process Server Finished    %v \n", ts.clientTimingInfo.ReadServerFinished)
+		fmt.Printf("<--| Write Client Finished      %v \n", ts.clientTimingInfo.WriteClientFinished)
+		fmt.Println("   Server")
+		fmt.Printf("-->| Receive Client Finished    %v \n", ts.serverTimingInfo.ReadClientFinished)
+		fmt.Println("Client")
+		fmt.Printf("Client Total time: %v \n", ts.clientTimingInfo.FullProtocol)
+		fmt.Printf("Server Total time: %v \n", ts.serverTimingInfo.FullProtocol)
+
+		if err != nil {
+			log.Println("")
+			log.Println(err.Error())
+		} else {
+			log.Println("")
+			// log.Println("Success using pdk-kemtls (kem: kyber512, kemSig: kyber512) with dc")
+			/* -------------------------------- Modified -------------------------------- */
+			log.Printf("Success using pdk-kemtls with dc\n\n=============================================\n\n")
+			/* ----------------------------------- End ---------------------------------- */
+		}
 	}
 }
