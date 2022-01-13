@@ -6,6 +6,7 @@ import (
 	"crypto/x509/pkix"
 	"crypto/kem"
 	"crypto/rand"
+	"circl/kem/hybrid"
 	"fmt"
 	"log"
 	"net"
@@ -14,10 +15,10 @@ import (
 	"strings"
 )
 
-// These test cert and keys were generated with the following program, available in the
+// The Root CA certificate and key were generated with the following program, available in the
 // crypto/tls directory:
 //
-//	go run generate_cert.go -ecdsa-curve P256 -host 127.0.0.1 -ca
+//	go run generate_cert.go -ecdsa-curve P256 -host 127.0.0.1 -ca true
 
 var rootCertPEMP256 = `-----BEGIN CERTIFICATE-----
 MIIBijCCATGgAwIBAgIRALM63nKUutZeH12Fk/5tChgwCgYIKoZIzj0EAwIwEjEQ
@@ -39,23 +40,45 @@ SUvZpntvzZ9nCLFWjf6X/zOO+Zpw9ci+Ob/HDb8ikQZ9GR1L8GStT7fj
 -----END EC PRIVATE KEY-----
 `
 
-var hsAlgorithms = []tls.CurveID{tls.Kyber512X25519}  // , tls.Kyber768X448, tls.Kyber1024X448, tls.SIKEp434X25519, tls.SIKEp503X448, tls.SIKEp751X448
+var hsAlgorithms = []tls.CurveID{tls.Kyber512X25519, tls.Kyber768X448, tls.Kyber1024X448, tls.SIKEp434X25519, tls.SIKEp503X448, tls.SIKEp751X448}
 
-// /home/jpadn/projects/labsec/go_stuff/go-kemtls-hybrid-kems/bin/go run generate_cert.go -host localhost -ca true -ed25519 true
-// openssl x509 -in hybridCert.pem -text -noout
+func curveIDtoName(curveID tls.CurveID) string {
+	var name string
+	switch curveID {
+	case tls.Kyber512X25519:
+		name = hybrid.Kyber512X25519().Name()
+	case tls.Kyber768X448:
+		name = hybrid.Kyber768X448().Name()
+	case tls.Kyber1024X448:
+		name = hybrid.Kyber1024X448().Name()
+	case tls.SIKEp434X25519:
+		name = hybrid.SIKEp434X25519().Name()
+	case tls.SIKEp503X448:
+		name = hybrid.SIKEp503X448().Name()
+	case tls.SIKEp751X448:
+		name = hybrid.SIKEp751X448().Name()
+	default:
+		name = "Unknown"
+	}
+	return name
+}
 
-func createHybridCertificate(signer *x509.Certificate, signerPrivKey interface{}) ([]byte, *kem.PrivateKey, error) {
+
+func createHybridCertificate(curveID tls.CurveID, signer *x509.Certificate, signerPrivKey interface{}) ([]byte, *kem.PrivateKey, error) {
 
 	var _validFrom string
 	var _validFor time.Duration
 	var _host string = "127.0.0.1"
 
-	hyPub, hyPriv, err := kem.GenerateKey(rand.Reader, kem.Kyber512X25519)
+	kemID := kem.ID(curveID)
+
+	hyPub, hyPriv, err := kem.GenerateKey(rand.Reader, kemID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	/* ------------------------------------ . ----------------------------------- */
+	/* ----------------- Copied from crypto/tls/generate_cert.go ---------------- */
+
 	// keyUsage := x509.KeyUsageDigitalSignature
 	keyUsage := x509.KeyUsageKeyEncipherment  // or |=
 
@@ -98,7 +121,8 @@ func createHybridCertificate(signer *x509.Certificate, signerPrivKey interface{}
 			hybridTemplate.DNSNames = append(hybridTemplate.DNSNames, h)
 		}
 	}
-	/* ------------------------------------ . ----------------------------------- */
+	
+	/* ----------------------------------- End ---------------------------------- */
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &hybridTemplate, signer, hyPub, signerPrivKey)
 	if err != nil {
@@ -107,9 +131,9 @@ func createHybridCertificate(signer *x509.Certificate, signerPrivKey interface{}
 
 	return derBytes, hyPriv, nil
 }
-/* ----------------------------------- End ---------------------------------- */
 
-func initServer() *tls.Config {
+
+func initServer(curveID tls.CurveID) *tls.Config {
 	rootCertP256 := new(tls.Certificate)
 	hybridCert := new(tls.Certificate)
 	var err error
@@ -128,7 +152,7 @@ func initServer() *tls.Config {
 
 	/* ------------------------- Hybrid Leaf Certificate ------------------------ */
 
-	certBytes, certPriv, err := createHybridCertificate(rootCertP256.Leaf, rootCertP256.PrivateKey)
+	certBytes, certPriv, err := createHybridCertificate(curveID, rootCertP256.Leaf, rootCertP256.PrivateKey)
 	if err != nil {
 		panic(err)
 	}
@@ -272,16 +296,19 @@ func main() {
 
 	for _, curveId := range hsAlgorithms {
 
-		serverConfig := initServer()
+		serverConfig := initServer(curveId)
 		clientConfig := initClient()
 		
 		// Select here the algorithm to be used in the KEX
 		serverConfig.CurvePreferences = []tls.CurveID{curveId}
 		clientConfig.CurvePreferences = []tls.CurveID{curveId}
-		
-		fmt.Printf("------------- KEMTLS -------------\n\n")
 
-		ts, dc, kemtls, _, _, err := testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "client")
+		fmt.Printf("Starting KEMTLS Handshake:\n\nKEX Algorithm: %s (0x%x)\nAuth Algorithm: %s (0x%x)\n\n", 
+							 curveIDtoName(curveId), kem.ID(curveId),
+							 curveIDtoName(curveId), kem.ID(curveId))
+		
+
+		ts, _, kemtls, _, _, err := testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "client")
 
 		fmt.Println("Client")
 		fmt.Printf("|--> Write Client Hello       %v \n", ts.clientTimingInfo.WriteClientHello)
@@ -311,15 +338,13 @@ func main() {
 		if err != nil {
 			log.Println("")
 			log.Println(err.Error())
-		} else if !dc && !kemtls {
+		} else if !kemtls {
 			log.Println("")
-			log.Println("Failure while trying to use kemtls with dcs")
+			log.Println("Failure while trying to use kemtls")
 		} else {
 			log.Println("")
-			// log.Println("Success using kemtls (kem: kyber512, kemSig: kyber512) with dc")
-			/* -------------------------------- Modified -------------------------------- */
-			log.Println("Success using kemtls with dc")
-			/* ----------------------------------- End ---------------------------------- */
+			log.Println("Success using kemtls")
+			fmt.Println("\n===========================================================\n")
 		}
 	}
 }
