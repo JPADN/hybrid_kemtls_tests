@@ -142,6 +142,9 @@ func initServer(dcAlgo tls.SignatureScheme) *tls.Config {
 	cfg.Certificates[0].DelegatedCredentials = make([]tls.DelegatedCredentialPair, 1)
 	cfg.Certificates[0].DelegatedCredentials[0] = dcPair
 
+	fmt.Println("UEBA")
+	fmt.Println(dcCertP256.SupportedSignatureAlgorithms)
+
 	return cfg
 }
 
