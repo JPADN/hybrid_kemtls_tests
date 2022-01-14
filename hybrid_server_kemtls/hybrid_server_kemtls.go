@@ -6,15 +6,20 @@ import (
 	"crypto/x509/pkix"
 	"crypto/kem"
 	"crypto/rand"
-	"circl/kem/hybrid"
 	"fmt"
 	"log"
 	"net"
 	"time"
 	"math/big"
 	"strings"
+	"flag"
+	"errors"
 )
 
+var (
+	kexAlgo   = flag.String("kex", "Kyber512X25519", "KEX Algorithm")
+	authAlgo  = flag.String("auth", "Kyber512X25519", "Authentication Algorithm")
+)
 // The Root CA certificate and key were generated with the following program, available in the
 // crypto/tls directory:
 //
@@ -40,27 +45,19 @@ SUvZpntvzZ9nCLFWjf6X/zOO+Zpw9ci+Ob/HDb8ikQZ9GR1L8GStT7fj
 -----END EC PRIVATE KEY-----
 `
 
-var hsAlgorithms = []tls.CurveID{tls.Kyber512X25519, tls.Kyber768X448, tls.Kyber1024X448, tls.SIKEp434X25519, tls.SIKEp503X448, tls.SIKEp751X448}
+var hsAlgorithms = map[string]tls.CurveID {"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
+																																	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
 
-func curveIDtoName(curveID tls.CurveID) string {
-	var name string
-	switch curveID {
-	case tls.Kyber512X25519:
-		name = hybrid.Kyber512X25519().Name()
-	case tls.Kyber768X448:
-		name = hybrid.Kyber768X448().Name()
-	case tls.Kyber1024X448:
-		name = hybrid.Kyber1024X448().Name()
-	case tls.SIKEp434X25519:
-		name = hybrid.SIKEp434X25519().Name()
-	case tls.SIKEp503X448:
-		name = hybrid.SIKEp503X448().Name()
-	case tls.SIKEp751X448:
-		name = hybrid.SIKEp751X448().Name()
-	default:
-		name = "Unknown"
+func nameToCurveID(name string) (tls.CurveID, error) {
+	curveID, prs := hsAlgorithms[name]
+	if !prs {
+		fmt.Println("Algorithm not found. Available algorithms: ")
+		for name, _ := range hsAlgorithms {
+			fmt.Println(name)
+		}
+		return 0, errors.New("ERROR: Algorithm not found")
 	}
-	return name
+	return curveID, nil
 }
 
 
@@ -291,60 +288,68 @@ func testConnWithDC(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 }
 
 func main() {
+	flag.Parse()
+
+	kexCurveID, err := nameToCurveID(*kexAlgo)
+	if err != nil {
+		log.Fatal(err)
+	}
+	authCurveID, err := nameToCurveID(*authAlgo)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	serverMsg := "hello, client"
 	clientMsg := "hello, server"
 
-	for _, curveId := range hsAlgorithms {
+	serverConfig := initServer(authCurveID)
+	clientConfig := initClient()
+	
+	// Select here the algorithm to be used in the KEX
+	serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
+	clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
-		serverConfig := initServer(curveId)
-		clientConfig := initClient()
-		
-		// Select here the algorithm to be used in the KEX
-		serverConfig.CurvePreferences = []tls.CurveID{curveId}
-		clientConfig.CurvePreferences = []tls.CurveID{curveId}
+	fmt.Printf("Starting KEMTLS Handshake:\n\nKEX Algorithm: %s (0x%x)\nAuth Algorithm: %s (0x%x)\n\n", 
+							*kexAlgo, kem.ID(kexCurveID),
+							*authAlgo, kem.ID(authCurveID))
+	
 
-		fmt.Printf("Starting KEMTLS Handshake:\n\nKEX Algorithm: %s (0x%x)\nAuth Algorithm: %s (0x%x)\n\n", 
-							 curveIDtoName(curveId), kem.ID(curveId),
-							 curveIDtoName(curveId), kem.ID(curveId))
-		
+	ts, _, kemtls, _, _, err := testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "client")
 
-		ts, _, kemtls, _, _, err := testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "client")
+	fmt.Println("Client")
+	fmt.Printf("|--> Write Client Hello       %v \n", ts.clientTimingInfo.WriteClientHello)
+	fmt.Println("   Server")
+	fmt.Printf("   | Receive Client Hello     %v \n", ts.serverTimingInfo.ProcessClientHello)
+	fmt.Printf("   | Write Server Hello       %v \n", ts.serverTimingInfo.WriteServerHello)
+	fmt.Printf("   | Write Server Enc Exts    %v \n", ts.serverTimingInfo.WriteEncryptedExtensions)
+	fmt.Printf("<--| Write Server Certificate %v \n", ts.serverTimingInfo.WriteCertificate)
 
-		fmt.Println("Client")
-		fmt.Printf("|--> Write Client Hello       %v \n", ts.clientTimingInfo.WriteClientHello)
-		fmt.Println("   Server")
-		fmt.Printf("   | Receive Client Hello     %v \n", ts.serverTimingInfo.ProcessClientHello)
-		fmt.Printf("   | Write Server Hello       %v \n", ts.serverTimingInfo.WriteServerHello)
-		fmt.Printf("   | Write Server Enc Exts    %v \n", ts.serverTimingInfo.WriteEncryptedExtensions)
-		fmt.Printf("<--| Write Server Certificate %v \n", ts.serverTimingInfo.WriteCertificate)
+	fmt.Println("Client")
+	fmt.Printf("-->| Process Server Hello       %v \n", ts.clientTimingInfo.ProcessServerHello)
+	fmt.Printf("   | Receive Server Enc Exts    %v \n", ts.clientTimingInfo.ReadEncryptedExtensions)
+	fmt.Printf("   | Receive Server Certificate %v \n", ts.clientTimingInfo.ReadCertificate)
+	fmt.Printf("   | Write KEM Ciphertext       %v \n", ts.clientTimingInfo.WriteKEMCiphertext)
+	fmt.Printf("<--| Write Client Finished      %v \n", ts.clientTimingInfo.WriteClientFinished)
 
-		fmt.Println("Client")
-		fmt.Printf("-->| Process Server Hello       %v \n", ts.clientTimingInfo.ProcessServerHello)
-		fmt.Printf("   | Receive Server Enc Exts    %v \n", ts.clientTimingInfo.ReadEncryptedExtensions)
-		fmt.Printf("   | Receive Server Certificate %v \n", ts.clientTimingInfo.ReadCertificate)
-		fmt.Printf("   | Write KEM Ciphertext       %v \n", ts.clientTimingInfo.WriteKEMCiphertext)
-		fmt.Printf("<--| Write Client Finished      %v \n", ts.clientTimingInfo.WriteClientFinished)
+	fmt.Println("   Server")
+	fmt.Printf("-->| Receive KEM Ciphertext     %v \n", ts.serverTimingInfo.ReadKEMCiphertext)
+	fmt.Printf("   | Receive Client Finished    %v \n", ts.serverTimingInfo.ReadClientFinished)
+	fmt.Printf("<--| Write Server Finished      %v \n", ts.serverTimingInfo.WriteServerFinished)
 
-		fmt.Println("   Server")
-		fmt.Printf("-->| Receive KEM Ciphertext     %v \n", ts.serverTimingInfo.ReadKEMCiphertext)
-		fmt.Printf("   | Receive Client Finished    %v \n", ts.serverTimingInfo.ReadClientFinished)
-		fmt.Printf("<--| Write Server Finished      %v \n", ts.serverTimingInfo.WriteServerFinished)
+	fmt.Println("Client")
+	fmt.Printf("-->| Process Server Finshed       %v \n", ts.clientTimingInfo.ReadServerFinished)
+	fmt.Printf("Client Total time: %v \n", ts.clientTimingInfo.FullProtocol)
+	fmt.Printf("Server Total time: %v \n", ts.serverTimingInfo.FullProtocol)
 
-		fmt.Println("Client")
-		fmt.Printf("-->| Process Server Finshed       %v \n", ts.clientTimingInfo.ReadServerFinished)
-		fmt.Printf("Client Total time: %v \n", ts.clientTimingInfo.FullProtocol)
-		fmt.Printf("Server Total time: %v \n", ts.serverTimingInfo.FullProtocol)
-
-		if err != nil {
-			log.Println("")
-			log.Println(err.Error())
-		} else if !kemtls {
-			log.Println("")
-			log.Println("Failure while trying to use kemtls")
-		} else {
-			log.Println("")
-			log.Println("Success using kemtls")
-			fmt.Println("\n===========================================================\n")
-		}
+	if err != nil {
+		log.Println("")
+		log.Println(err.Error())
+	} else if !kemtls {
+		log.Println("")
+		log.Println("Failure while trying to use kemtls")
+	} else {
+		log.Println("")
+		log.Println("Success using kemtls")
+		fmt.Println("\n===========================================================\n")
 	}
 }
