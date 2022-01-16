@@ -1,25 +1,29 @@
 package main
 
 import (
+	"crypto/kem"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"crypto/kem"
-	"crypto/rand"
+	"errors"
+	"flag"
 	"fmt"
 	"log"
-	"net"
-	"time"
 	"math/big"
+	"net"
 	"strings"
-	"flag"
-	"errors"
+	"time"
 )
 
 var (
-	kexAlgo   = flag.String("kex", "Kyber512X25519", "KEX Algorithm")
-	authAlgo  = flag.String("auth", "Kyber512X25519", "Authentication Algorithm")
+	kexAlgo    = flag.String("kex", "Kyber512X25519", "KEX Algorithm")
+	authAlgo   = flag.String("auth", "Kyber512X25519", "Authentication Algorithm")
+	IPserver   = flag.String("ip", "127.0.0.1", "IP of the KEMTLS Server")
+	tlspeer    = flag.String("tlspeer", "server", "KEMTLS Peer: client or server")
+	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
 )
+
 // The Root CA certificate and key were generated with the following program, available in the
 // crypto/tls directory:
 //
@@ -45,8 +49,8 @@ SUvZpntvzZ9nCLFWjf6X/zOO+Zpw9ci+Ob/HDb8ikQZ9GR1L8GStT7fj
 -----END EC PRIVATE KEY-----
 `
 
-var hsAlgorithms = map[string]tls.CurveID {"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
-																																	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
+var hsAlgorithms = map[string]tls.CurveID{"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
+	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
 
 func nameToCurveID(name string) (tls.CurveID, error) {
 	curveID, prs := hsAlgorithms[name]
@@ -59,7 +63,6 @@ func nameToCurveID(name string) (tls.CurveID, error) {
 	}
 	return curveID, nil
 }
-
 
 func createHybridCertificate(curveID tls.CurveID, signer *x509.Certificate, signerPrivKey interface{}) ([]byte, *kem.PrivateKey, error) {
 
@@ -77,7 +80,7 @@ func createHybridCertificate(curveID tls.CurveID, signer *x509.Certificate, sign
 	/* ----------------- Copied from crypto/tls/generate_cert.go ---------------- */
 
 	// keyUsage := x509.KeyUsageDigitalSignature
-	keyUsage := x509.KeyUsageKeyEncipherment  // or |=
+	keyUsage := x509.KeyUsageKeyEncipherment // or |=
 
 	var notBefore time.Time
 	if len(_validFrom) == 0 {
@@ -118,7 +121,7 @@ func createHybridCertificate(curveID tls.CurveID, signer *x509.Certificate, sign
 			hybridTemplate.DNSNames = append(hybridTemplate.DNSNames, h)
 		}
 	}
-	
+
 	/* ----------------------------------- End ---------------------------------- */
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &hybridTemplate, signer, hyPub, signerPrivKey)
@@ -128,7 +131,6 @@ func createHybridCertificate(curveID tls.CurveID, signer *x509.Certificate, sign
 
 	return derBytes, hyPriv, nil
 }
-
 
 func initServer(curveID tls.CurveID) *tls.Config {
 	rootCertP256 := new(tls.Certificate)
@@ -199,8 +201,8 @@ func initClient() *tls.Config {
 	return ccfg
 }
 
-func newLocalListener() net.Listener {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+func newLocalListener(ip string) net.Listener {
+	ln, err := net.Listen("tcp", ip+":4433") //Fixed 4433 to ease firewall conf
 	if err != nil {
 		ln, err = net.Listen("tcp6", "[::1]:0")
 	}
@@ -224,67 +226,92 @@ func (ti *timingInfo) eventHandler(event tls.CFEvent) {
 	}
 }
 
-func testConnWithDC(clientMsg, serverMsg string, clientConfig, serverConfig *tls.Config, peer string) (timingState timingInfo, dcUsed bool, kemtlsUsed bool, cconnState, sconnState tls.ConnectionState, err error) {
+func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls.Config, peer string, ipserver string) (timingState timingInfo, isDC bool, err error) {
 	clientConfig.CFEventHandler = timingState.eventHandler
 	serverConfig.CFEventHandler = timingState.eventHandler
-
-	ln := newLocalListener()
-	defer ln.Close()
-
-	serverCh := make(chan *tls.Conn, 1)
-	var serverErr error
-	go func() {
-		serverConn, err := ln.Accept()
-		if err != nil {
-			serverErr = err
-			serverCh <- nil
-			return
-		}
-		server := tls.Server(serverConn, serverConfig)
-		if err := server.Handshake(); err != nil {
-			serverErr = fmt.Errorf("handshake error: %v", err)
-			serverCh <- nil
-			return
-		}
-		serverCh <- server
-	}()
-
-	client, err := tls.Dial("tcp", ln.Addr().String(), clientConfig)
-	if err != nil {
-		return timingState, false, false, cconnState, sconnState, err
-	}
-	defer client.Close()
-
-	server := <-serverCh
-	if server == nil {
-		return timingState, false, false, cconnState, sconnState, err
-	}
 
 	bufLen := len(clientMsg)
 	if len(serverMsg) > len(clientMsg) {
 		bufLen = len(serverMsg)
 	}
 	buf := make([]byte, bufLen)
+	if peer == "server" {
+		ln := newLocalListener(ipserver)
+		defer ln.Close()
+		for {
 
-	client.Write([]byte(clientMsg))
-	n, err := server.Read(buf)
-	if err != nil || n != len(clientMsg) || string(buf[:n]) != clientMsg {
-		return timingState, false, false, cconnState, sconnState, fmt.Errorf("Server read = %d, buf= %q; want %d, %s", n, buf, len(clientMsg), clientMsg)
+			fmt.Println("Server Awaiting connection...")
+			fmt.Println(ln.Addr().String())
+
+			serverConn, err := ln.Accept()
+			if err != nil {
+				fmt.Print(err)
+			}
+			server := tls.Server(serverConn, serverConfig)
+			if err := server.Handshake(); err != nil {
+				fmt.Printf("Handshake error %v", err)
+			}
+
+			//server read client hello
+			n, err := server.Read(buf)
+			if err != nil || n != len(clientMsg) || string(buf[:n]) != clientMsg {
+				fmt.Print(err)
+			}
+
+			//server responds
+			server.Write([]byte(serverMsg))
+			if n != len(serverMsg) || err != nil || string(buf[:n]) != serverMsg {
+				//error
+			}
+			fmt.Println("   Server")
+			fmt.Printf("   | Receive Client Hello     %v \n", timingState.serverTimingInfo.ProcessClientHello)
+			fmt.Printf("   | Write Server Hello       %v \n", timingState.serverTimingInfo.WriteServerHello)
+			fmt.Printf("   | Write Server Enc Exts    %v \n", timingState.serverTimingInfo.WriteEncryptedExtensions)
+			fmt.Printf("<--| Write Server Certificate %v \n", timingState.serverTimingInfo.WriteCertificate)
+
+			fmt.Println("   Server")
+			fmt.Printf("-->| Receive KEM Ciphertext     %v \n", timingState.serverTimingInfo.ReadKEMCiphertext)
+			fmt.Printf("   | Receive Client Finished    %v \n", timingState.serverTimingInfo.ReadClientFinished)
+			fmt.Printf("<--| Write Server Finished      %v \n", timingState.serverTimingInfo.WriteServerFinished)
+
+			fmt.Printf("Server Total time: %v \n", timingState.serverTimingInfo.FullProtocol)
+			if server.ConnectionState().DidKEMTLS {
+				fmt.Println("Server Success using kemtls")
+			}
+		}
 	}
-
-	server.Write([]byte(serverMsg))
-	n, err = client.Read(buf)
-	if n != len(serverMsg) || err != nil || string(buf[:n]) != serverMsg {
-		return timingState, false, false, cconnState, sconnState, fmt.Errorf("Client read = %d, %v, data %q; want %d, nil, %s", n, err, buf, len(serverMsg), serverMsg)
-	}
-
 	if peer == "client" {
-		if server.ConnectionState().DidKEMTLS && client.ConnectionState().DidKEMTLS {
-			return timingState, true, true, client.ConnectionState(), server.ConnectionState(), nil
+
+		client, err := tls.Dial("tcp", ipserver+":4433", clientConfig) //Fixed 4433 to ease firewall conf
+		if err != nil {
+			fmt.Print(err)
+		}
+		defer client.Close()
+
+		client.Write([]byte(clientMsg))
+
+		_, err = client.Read(buf)
+
+		fmt.Println("Client")
+		fmt.Printf("|--> Write Client Hello       |%v| \n", timingState.clientTimingInfo.WriteClientHello)
+
+		fmt.Println("Client")
+		fmt.Printf("-->| Process Server Hello       |%v| \n", timingState.clientTimingInfo.ProcessServerHello)
+		fmt.Printf("   | Receive Server Enc Exts    |%v| \n", timingState.clientTimingInfo.ReadEncryptedExtensions)
+		fmt.Printf("   | Receive Server Certificate |%v| \n", timingState.clientTimingInfo.ReadCertificate)
+		fmt.Printf("   | Write KEM Ciphertext       |%v| \n", timingState.clientTimingInfo.WriteKEMCiphertext)
+		fmt.Printf("<--| Write Client Finished      |%v| \n", timingState.clientTimingInfo.WriteClientFinished)
+
+		fmt.Println("Client")
+		fmt.Printf("-->| Process Server Finshed       |%v| \n", timingState.clientTimingInfo.ReadServerFinished)
+		fmt.Printf("Client Total time: |%v| \n", timingState.clientTimingInfo.FullProtocol)
+
+		if client.ConnectionState().DidKEMTLS {
+			log.Println("Client Success using kemtls")
 		}
 	}
 
-	return timingState, false, false, cconnState, sconnState, nil
+	return timingState, true, nil
 }
 
 func main() {
@@ -304,52 +331,20 @@ func main() {
 
 	serverConfig := initServer(authCurveID)
 	clientConfig := initClient()
-	
+
 	// Select here the algorithm to be used in the KEX
 	serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 	clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
-	fmt.Printf("Starting KEMTLS Handshake:\n\nKEX Algorithm: %s (0x%x)\nAuth Algorithm: %s (0x%x)\n\n", 
-							*kexAlgo, kem.ID(kexCurveID),
-							*authAlgo, kem.ID(authCurveID))
-	
+	fmt.Printf("Starting KEMTLS Handshake:\n\nKEX Algorithm: %s (0x%x)\nAuth Algorithm: %s (0x%x)\n\n",
+		*kexAlgo, kem.ID(kexCurveID),
+		*authAlgo, kem.ID(authCurveID))
 
-	ts, _, kemtls, _, _, err := testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "client")
-
-	fmt.Println("Client")
-	fmt.Printf("|--> Write Client Hello       %v \n", ts.clientTimingInfo.WriteClientHello)
-	fmt.Println("   Server")
-	fmt.Printf("   | Receive Client Hello     %v \n", ts.serverTimingInfo.ProcessClientHello)
-	fmt.Printf("   | Write Server Hello       %v \n", ts.serverTimingInfo.WriteServerHello)
-	fmt.Printf("   | Write Server Enc Exts    %v \n", ts.serverTimingInfo.WriteEncryptedExtensions)
-	fmt.Printf("<--| Write Server Certificate %v \n", ts.serverTimingInfo.WriteCertificate)
-
-	fmt.Println("Client")
-	fmt.Printf("-->| Process Server Hello       %v \n", ts.clientTimingInfo.ProcessServerHello)
-	fmt.Printf("   | Receive Server Enc Exts    %v \n", ts.clientTimingInfo.ReadEncryptedExtensions)
-	fmt.Printf("   | Receive Server Certificate %v \n", ts.clientTimingInfo.ReadCertificate)
-	fmt.Printf("   | Write KEM Ciphertext       %v \n", ts.clientTimingInfo.WriteKEMCiphertext)
-	fmt.Printf("<--| Write Client Finished      %v \n", ts.clientTimingInfo.WriteClientFinished)
-
-	fmt.Println("   Server")
-	fmt.Printf("-->| Receive KEM Ciphertext     %v \n", ts.serverTimingInfo.ReadKEMCiphertext)
-	fmt.Printf("   | Receive Client Finished    %v \n", ts.serverTimingInfo.ReadClientFinished)
-	fmt.Printf("<--| Write Server Finished      %v \n", ts.serverTimingInfo.WriteServerFinished)
-
-	fmt.Println("Client")
-	fmt.Printf("-->| Process Server Finshed       %v \n", ts.clientTimingInfo.ReadServerFinished)
-	fmt.Printf("Client Total time: %v \n", ts.clientTimingInfo.FullProtocol)
-	fmt.Printf("Server Total time: %v \n", ts.serverTimingInfo.FullProtocol)
-
-	if err != nil {
-		log.Println("")
-		log.Println(err.Error())
-	} else if !kemtls {
-		log.Println("")
-		log.Println("Failure while trying to use kemtls")
+	if *tlspeer == "server" {
+		testConnHybrid(clientMsg, serverMsg, clientConfig, serverConfig, "server", *IPserver)
 	} else {
-		log.Println("")
-		log.Println("Success using kemtls")
-		fmt.Println("\n===========================================================\n")
+		for i := 1; i < *handshakes; i++ {
+			testConnHybrid(clientMsg, serverMsg, clientConfig, serverConfig, "client", *IPserver)
+		}
 	}
 }
