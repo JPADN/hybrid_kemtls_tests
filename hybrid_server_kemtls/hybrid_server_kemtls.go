@@ -12,6 +12,7 @@ import (
 	"log"
 	"math/big"
 	"net"
+	"sort"
 	"strings"
 	"time"
 )
@@ -51,6 +52,17 @@ SUvZpntvzZ9nCLFWjf6X/zOO+Zpw9ci+Ob/HDb8ikQZ9GR1L8GStT7fj
 
 var hsAlgorithms = map[string]tls.CurveID{"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
 	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
+
+//sort and returns sorted keys
+func sortAlgorithmsMap() (keys []string) {
+	//sort the map of algorithms
+	output := make([]string, 0, len(hsAlgorithms))
+	for k, _ := range hsAlgorithms {
+		output = append(output, k)
+	}
+	sort.Strings(output)
+	return output
+}
 
 func nameToCurveID(name string) (tls.CurveID, error) {
 	curveID, prs := hsAlgorithms[name]
@@ -201,8 +213,8 @@ func initClient() *tls.Config {
 	return ccfg
 }
 
-func newLocalListener(ip string) net.Listener {
-	ln, err := net.Listen("tcp", ip+":4433") //Fixed 4433 to ease firewall conf
+func newLocalListener(ip string, port string) net.Listener {
+	ln, err := net.Listen("tcp", ip+":"+port)
 	if err != nil {
 		ln, err = net.Listen("tcp6", "[::1]:0")
 	}
@@ -226,7 +238,7 @@ func (ti *timingInfo) eventHandler(event tls.CFEvent) {
 	}
 }
 
-func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls.Config, peer string, ipserver string) (timingState timingInfo, isDC bool, err error) {
+func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls.Config, peer string, ipserver string, port string) (timingState timingInfo, isDC bool, err error) {
 	clientConfig.CFEventHandler = timingState.eventHandler
 	serverConfig.CFEventHandler = timingState.eventHandler
 
@@ -236,12 +248,12 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 	}
 	buf := make([]byte, bufLen)
 	if peer == "server" {
-		ln := newLocalListener(ipserver)
+		ln := newLocalListener(ipserver, port)
 		defer ln.Close()
 		for {
 
-			fmt.Println("Server Awaiting connection...")
-			fmt.Println(ln.Addr().String())
+			//			fmt.Println("Server Awaiting connection...")
+			//			fmt.Println(ln.Addr().String())
 
 			serverConn, err := ln.Accept()
 			if err != nil {
@@ -282,7 +294,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 	}
 	if peer == "client" {
 
-		client, err := tls.Dial("tcp", ipserver+":4433", clientConfig) //Fixed 4433 to ease firewall conf
+		client, err := tls.Dial("tcp", ipserver+":"+port, clientConfig)
 		if err != nil {
 			fmt.Print(err)
 		}
@@ -312,39 +324,4 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 	}
 
 	return timingState, true, nil
-}
-
-func main() {
-	flag.Parse()
-
-	kexCurveID, err := nameToCurveID(*kexAlgo)
-	if err != nil {
-		log.Fatal(err)
-	}
-	authCurveID, err := nameToCurveID(*authAlgo)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	serverMsg := "hello, client"
-	clientMsg := "hello, server"
-
-	serverConfig := initServer(authCurveID)
-	clientConfig := initClient()
-
-	// Select here the algorithm to be used in the KEX
-	serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
-	clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
-
-	fmt.Printf("Starting KEMTLS Handshake:\n\nKEX Algorithm: %s (0x%x)\nAuth Algorithm: %s (0x%x)\n\n",
-		*kexAlgo, kem.ID(kexCurveID),
-		*authAlgo, kem.ID(authCurveID))
-
-	if *tlspeer == "server" {
-		testConnHybrid(clientMsg, serverMsg, clientConfig, serverConfig, "server", *IPserver)
-	} else {
-		for i := 1; i < *handshakes; i++ {
-			testConnHybrid(clientMsg, serverMsg, clientConfig, serverConfig, "client", *IPserver)
-		}
-	}
 }
