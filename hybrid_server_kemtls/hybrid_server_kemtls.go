@@ -266,16 +266,18 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 
 			//server read client hello
 			n, err := server.Read(buf)
-			if err != nil || n != len(clientMsg) || string(buf[:n]) != clientMsg {
+			if err != nil || n != len(clientMsg) {
 				fmt.Print(err)
 			}
 
 			//server responds
 			server.Write([]byte(serverMsg))
-			if n != len(serverMsg) || err != nil || string(buf[:n]) != serverMsg {
+			if n != len(serverMsg) || err != nil {
 				//error
+				fmt.Print(err)
+				fmt.Println("errrrrrr")
 			}
-			fmt.Println("   Server")
+			/*fmt.Println("   Server")
 			fmt.Printf("   | Receive Client Hello     %v \n", timingState.serverTimingInfo.ProcessClientHello)
 			fmt.Printf("   | Write Server Hello       %v \n", timingState.serverTimingInfo.WriteServerHello)
 			fmt.Printf("   | Write Server Enc Exts    %v \n", timingState.serverTimingInfo.WriteEncryptedExtensions)
@@ -286,7 +288,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 			fmt.Printf("   | Receive Client Finished    %v \n", timingState.serverTimingInfo.ReadClientFinished)
 			fmt.Printf("<--| Write Server Finished      %v \n", timingState.serverTimingInfo.WriteServerFinished)
 
-			fmt.Printf("Server Total time: %v \n", timingState.serverTimingInfo.FullProtocol)
+			fmt.Printf("Server Total time: %v \n", timingState.serverTimingInfo.FullProtocol)*/
 			if server.ConnectionState().DidKEMTLS {
 				fmt.Println("Server Success using kemtls")
 			}
@@ -304,7 +306,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 
 		_, err = client.Read(buf)
 
-		fmt.Println("Client")
+		/*fmt.Println("Client")
 		fmt.Printf("|--> Write Client Hello       |%v| \n", timingState.clientTimingInfo.WriteClientHello)
 
 		fmt.Println("Client")
@@ -315,7 +317,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		fmt.Printf("<--| Write Client Finished      |%v| \n", timingState.clientTimingInfo.WriteClientFinished)
 
 		fmt.Println("Client")
-		fmt.Printf("-->| Process Server Finshed       |%v| \n", timingState.clientTimingInfo.ReadServerFinished)
+		fmt.Printf("-->| Process Server Finshed       |%v| \n", timingState.clientTimingInfo.ReadServerFinished)*/
 		fmt.Printf("Client Total time: |%v| \n", timingState.clientTimingInfo.FullProtocol)
 
 		if client.ConnectionState().DidKEMTLS {
