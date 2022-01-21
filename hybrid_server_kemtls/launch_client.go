@@ -11,6 +11,8 @@ import (
 )
 
 type ClientResultsInfo struct {
+	kexName                 string
+	authName                string
 	avgTotalTime            float64
 	avgWriteKEMCiphertext   float64
 	avgProcessServerHello   float64
@@ -59,12 +61,34 @@ func computeStats(timingsFullProtocol []int64, timingsProcessServerHello []int64
 }
 
 //print results
-func printStatistics(results *ClientResultsInfo, name string) {
-	fmt.Println("Results (ms):" + name)
-	fmt.Printf("Avg Client Total Time           | Stdev Client Total Time \n\t\t %f\t|\t%f\t\n", results.avgTotalTime, results.stdevTotalTime)
-	fmt.Printf("Avg Write Client Hello Time     | Stdev Write Client Hello Time \n\t\t %f\t|\t%f\t\n", results.avgWriteClientHello, results.stdevWriteClientHello)
-	fmt.Printf("Avg Process Server Hello Time   | Stdev Process Server Hello Time \n\t\t %f\t|\t%f\t\n", results.avgProcessServerHello, results.stdevProcessServerHello)
-	fmt.Printf("Avg Write KEM Ciphertext Time   | Stdev Write KEM Ciphertext Time \n\t\t %f\t|\t%f\t\n", results.avgWriteKEMCiphertext, results.stdevWriteKEMCiphertext)
+func printStatistics(results []ClientResultsInfo) {
+	//header
+	fmt.Print("TestName\t| AvgClientTotalTime | StdevClientTotalTime |")
+	fmt.Print("AvgWrtCHelloTime | StdevWrtCHelloTime |")
+	fmt.Print("AvgPrSHelloTime | StdevPrSHelloTime |")
+	fmt.Println("AvgWrtKEMCtTime | StdevWrtKEMCtTime")
+
+	for _, r := range results {
+		//content
+		fmt.Print(r.kexName + "\t|")
+		fmt.Printf(" %f\t     | %f\t\t    |", r.avgTotalTime, r.stdevTotalTime)
+		fmt.Printf(" %f\t      | %f\t   |", r.avgWriteClientHello, r.stdevWriteClientHello)
+		fmt.Printf(" %f\t    | %f\t        |", r.avgProcessServerHello, r.stdevProcessServerHello)
+		fmt.Printf(" %f\t | %f\n", r.avgWriteKEMCiphertext, r.stdevWriteKEMCiphertext)
+
+		/*fmt.Printf("Avg Client Total Time           | Stdev Client Total Time \n\t\t %f\t|\t%f\t\n", r.avgTotalTime, r.stdevTotalTime)
+		fmt.Printf("Avg Write Client Hello Time     | Stdev Write Client Hello Time \n\t\t %f\t|\t%f\t\n", r.avgWriteClientHello, r.stdevWriteClientHello)
+		fmt.Printf("Avg Process Server Hello Time   | Stdev Process Server Hello Time \n\t\t %f\t|\t%f\t\n", r.avgProcessServerHello, r.stdevProcessServerHello)
+		fmt.Printf("Avg Write KEM Ciphertext Time   | Stdev Write KEM Ciphertext Time \n\t\t %f\t|\t%f\t\n", r.avgWriteKEMCiphertext, r.stdevWriteKEMCiphertext)*/
+	}
+}
+
+func resultsExporter(results []ClientResultsInfo) {
+	printStatistics(results)
+	genbar(results, "Avg Completion Time - Client (ms)")
+	genbar(results, "Avg Write Client Hello Time (ms)")
+	genbar(results, "Avg Process Server Hello - Client (ms)")
+	genbar(results, "Avg Write KEM Ciphertext - Client (ms)")
 }
 
 func main() {
@@ -73,9 +97,12 @@ func main() {
 	clientMsg := "hello, server"
 
 	port := 4433
-	//var err error
+
 	//struct for the metrics
 	var algoResults ClientResultsInfo
+
+	//list of structs
+	var algoResultsList []ClientResultsInfo
 
 	keys := sortAlgorithmsMap()
 	for _, k := range keys {
@@ -110,8 +137,13 @@ func main() {
 		}
 
 		algoResults = computeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
+		algoResults.kexName = k
+		algoResults.authName = k
 
-		printStatistics(&algoResults, k)
+		algoResultsList = append(algoResultsList, algoResults)
 		port++
 	}
+	//export results
+	resultsExporter(algoResultsList)
+
 }
