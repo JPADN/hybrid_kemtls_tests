@@ -33,6 +33,9 @@ const (
 	metricWKEMCtTime     = "Avg Write KEM Ciphertext - Client (ms)"
 )
 
+//Dimgray
+var barsGraphColor = color.RGBA{R: 105, G: 105, B: 105, A: 255}
+
 func resultsToArray(results []ClientResultsInfo) (rArrayNames []string, rArrayTotalTime plotter.Values,
 	rArrayCHello plotter.Values, rArrayPSHello plotter.Values, rArrayWKEMCt plotter.Values) {
 
@@ -46,6 +49,18 @@ func resultsToArray(results []ClientResultsInfo) (rArrayNames []string, rArrayTo
 	return rArrayNames, rArrayTotalTime, rArrayCHello, rArrayPSHello, rArrayWKEMCt
 }
 
+//for the boxplot data
+func intArrayToFloat64(inputData []int64) (arrayFloat []float64) {
+	arrayFloat = make([]float64, len(inputData))
+	for i, v := range inputData {
+		arrayFloat[i] = float64(v)
+	}
+	return arrayFloat
+}
+
+/*
+ * Bar chart from gonum/plot
+ */
 func genbar(results []ClientResultsInfo, metric string) {
 
 	names, resultsTotalTime, resultsCH, resultsPSH, resultsWKEMCt := resultsToArray(results)
@@ -72,7 +87,7 @@ func genbar(results []ClientResultsInfo, metric string) {
 		panic(err)
 	}
 	barsA.LineStyle.Width = vg.Length(0)
-	barsA.Color = color.RGBA{R: 105, G: 105, B: 105, A: 255} //plotutil.Color(0)
+	barsA.Color = barsGraphColor //plotutil.Color(0)
 
 	p.Add(barsA)
 	//p.Legend.Add("Client Total Time", barsA)
@@ -80,6 +95,42 @@ func genbar(results []ClientResultsInfo, metric string) {
 	p.NominalX(names...)
 
 	if err := p.Save(9*vg.Inch, 4*vg.Inch, "barchart"+strings.TrimSpace(metric)+".pdf"); err != nil {
+		panic(err)
+	}
+}
+
+/*
+ * Boxplot chart from gonum/plot
+ */
+func boxplot(names []string, vals []plotter.Values, hs int) {
+
+	// Create the plot and set its title and axis label.
+	p := plot.New()
+
+	p.Title.Text = "Box plots"
+	p.Y.Label.Text = "Handshake completion times (ms)"
+
+	//values
+	count := 0.0
+	for _, v := range vals {
+		// Make boxes for our data and add them to the plot.
+		w := vg.Points(40)
+
+		//add a box
+		box, err := plotter.NewBoxPlot(w, count, v)
+		box.FillColor = barsGraphColor
+		if err != nil {
+			panic(err)
+		}
+		count++
+		p.Add(box)
+	}
+
+	// Set the X axis of the plot to nominal with
+	// the given names for x=0, x=1 and x=2.
+	p.NominalX(names...)
+
+	if err := p.Save(9*vg.Inch, 4*vg.Inch, "boxplot.pdf"); err != nil {
 		panic(err)
 	}
 }

@@ -8,6 +8,8 @@ import (
 	"log"
 	"math"
 	"time"
+
+	"gonum.org/v1/plot/plotter"
 )
 
 type ClientResultsInfo struct {
@@ -83,12 +85,13 @@ func printStatistics(results []ClientResultsInfo) {
 	}
 }
 
-func resultsExporter(results []ClientResultsInfo) {
+func resultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
 	printStatistics(results)
 	genbar(results, "Avg Completion Time - Client (ms)")
 	genbar(results, "Avg Write Client Hello Time (ms)")
 	genbar(results, "Avg Process Server Hello - Client (ms)")
 	genbar(results, "Avg Write KEM Ciphertext - Client (ms)")
+	boxplot(names, boxPlotValues, hs)
 }
 
 func main() {
@@ -103,6 +106,11 @@ func main() {
 
 	//list of structs
 	var algoResultsList []ClientResultsInfo
+
+	//boxPlot data
+	var boxPlotValues []plotter.Values
+
+	var kexNames []string
 
 	keys := sortAlgorithmsMap()
 	for _, k := range keys {
@@ -125,6 +133,7 @@ func main() {
 		var timingsProcessServerHello []int64
 		var timingsWriteClientHello []int64
 		var timingsWriteKEMCiphertext []int64
+
 		for i := 0; i < *handshakes; i++ {
 			timingState, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
 			if err != nil {
@@ -141,9 +150,13 @@ func main() {
 		algoResults.authName = k
 
 		algoResultsList = append(algoResultsList, algoResults)
+
+		boxPlotValues = append(boxPlotValues, intArrayToFloat64(timingsFullProtocol))
+		kexNames = append(kexNames, k)
+
 		port++
 	}
 	//export results
-	resultsExporter(algoResultsList)
+	resultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
 
 }
