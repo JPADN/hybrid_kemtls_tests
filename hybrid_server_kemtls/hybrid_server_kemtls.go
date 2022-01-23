@@ -275,7 +275,6 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 			if n != len(serverMsg) || err != nil {
 				//error
 				fmt.Print(err)
-				fmt.Println("errrrrrr")
 			}
 			/*fmt.Println("   Server")
 			fmt.Printf("   | Receive Client Hello     %v \n", timingState.serverTimingInfo.ProcessClientHello)

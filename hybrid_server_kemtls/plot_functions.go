@@ -4,6 +4,7 @@ import (
 
 	//"github.com/go-echarts/go-echarts/v2/charts"
 	//"github.com/go-echarts/go-echarts/v2/opts"
+
 	"image/color"
 	"strings"
 
@@ -50,13 +51,21 @@ func resultsToArray(results []ClientResultsInfo) (rArrayNames []string, rArrayTo
 }
 
 //for the boxplot data
-func intArrayToFloat64(inputData []int64) (arrayFloat []float64) {
+/*func intArrayToFloat64(inputData []int64) (arrayFloat []float64) {
 	arrayFloat = make([]float64, len(inputData))
 	for i, v := range inputData {
 		arrayFloat[i] = float64(v)
 	}
 	return arrayFloat
-}
+}*/
+
+/*func int64ToString(inputData []int64) (arrayStr []string) {
+	arrayStr = make([]string, len(inputData))
+	for _, v := range inputData {
+		arrayStr = append(arrayStr, fmt.Sprint(v))
+	}
+	return arrayStr
+}*/
 
 /*
  * Bar chart from gonum/plot

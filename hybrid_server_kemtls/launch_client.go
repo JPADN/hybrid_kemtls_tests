@@ -3,10 +3,12 @@ package main
 import (
 	"crypto/kem"
 	"crypto/tls"
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"time"
 
 	"gonum.org/v1/plot/plotter"
@@ -25,13 +27,14 @@ type ClientResultsInfo struct {
 	stdevWriteClientHello   float64
 }
 
-//Stats: Avg, Stdev
-func computeStats(timingsFullProtocol []int64, timingsProcessServerHello []int64, timingsWriteClientHello []int64, timingsWriteKEMCiphertext []int64, hs int) (r ClientResultsInfo) {
+//Stats: Avg, Stdev.
+func computeStats(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, hs int) (r ClientResultsInfo) {
+
 	//counts
-	var countTotalTime int64
-	var countProcessServerHello int64
-	var countWriteClientHello int64
-	var countWriteKEMCiphertext int64
+	var countTotalTime float64
+	var countProcessServerHello float64
+	var countWriteClientHello float64
+	var countWriteKEMCiphertext float64
 
 	//Average
 	countTotalTime, countProcessServerHello, countWriteClientHello, countWriteKEMCiphertext = 0, 0, 0, 0
@@ -42,10 +45,10 @@ func computeStats(timingsFullProtocol []int64, timingsProcessServerHello []int64
 		countWriteKEMCiphertext += timingsWriteKEMCiphertext[i]
 	}
 
-	r.avgTotalTime = float64(countTotalTime) / float64(hs)
-	r.avgProcessServerHello = float64(countProcessServerHello) / float64(hs)
-	r.avgWriteClientHello = float64(countWriteClientHello) / float64(hs)
-	r.avgWriteKEMCiphertext = float64(countWriteKEMCiphertext) / float64(hs)
+	r.avgTotalTime = (countTotalTime) / float64(hs)
+	r.avgProcessServerHello = (countProcessServerHello) / float64(hs)
+	r.avgWriteClientHello = (countWriteClientHello) / float64(hs)
+	r.avgWriteKEMCiphertext = (countWriteKEMCiphertext) / float64(hs)
 
 	//stdev
 	for i := 0; i < hs; i++ {
@@ -85,6 +88,43 @@ func printStatistics(results []ClientResultsInfo) {
 	}
 }
 
+func initCSV() {
+	csvFile, err := os.Create("kemtls-client.csv")
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+	csvwriter := csv.NewWriter(csvFile)
+
+	header := []string{"algo", "timingFullProtocol", "timingProcessServerHello", "timingWriteClientHello", "timingWriteKEMCiphertext"}
+
+	csvwriter.Write(header)
+	csvwriter.Flush()
+	csvFile.Close()
+}
+
+//func saveCSV(boxPlotValues []plotter.Values, names []string, hs int) {
+func saveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, name string, hs int) {
+	csvFile, err := os.OpenFile("kemtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		log.Fatalf("failed opening file: %s", err)
+	}
+
+	csvwriter := csv.NewWriter(csvFile)
+
+	for i := 0; i < hs; i++ {
+		arrayStr := []string{name, fmt.Sprint(timingsFullProtocol[i]),
+			fmt.Sprint(timingsProcessServerHello[i]),
+			fmt.Sprint(timingsWriteClientHello[i]),
+			fmt.Sprint(timingsProcessServerHello[i])}
+
+		if err := csvwriter.Write(arrayStr); err != nil {
+			log.Fatalln("error writing record to file", err)
+		}
+		csvwriter.Flush()
+	}
+	csvFile.Close()
+}
+
 func resultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
 	printStatistics(results)
 	genbar(results, "Avg Completion Time - Client (ms)")
@@ -109,8 +149,10 @@ func main() {
 
 	//boxPlot data
 	var boxPlotValues []plotter.Values
-
 	var kexNames []string
+
+	//prepare output file
+	initCSV()
 
 	keys := sortAlgorithmsMap()
 	for _, k := range keys {
@@ -129,21 +171,24 @@ func main() {
 			k, kem.ID(kexCurveID),
 			k, kem.ID(kexCurveID)) //note: removed 'authCurveID'
 
-		var timingsFullProtocol []int64
-		var timingsProcessServerHello []int64
-		var timingsWriteClientHello []int64
-		var timingsWriteKEMCiphertext []int64
+		var timingsFullProtocol []float64
+		var timingsProcessServerHello []float64
+		var timingsWriteClientHello []float64
+		var timingsWriteKEMCiphertext []float64
 
 		for i := 0; i < *handshakes; i++ {
 			timingState, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
 			if err != nil {
 				log.Fatal(err)
 			}
-			timingsFullProtocol = append(timingsFullProtocol, int64(timingState.clientTimingInfo.FullProtocol/time.Millisecond))
-			timingsProcessServerHello = append(timingsProcessServerHello, int64(timingState.clientTimingInfo.ProcessServerHello/time.Millisecond))
-			timingsWriteClientHello = append(timingsWriteClientHello, int64(timingState.clientTimingInfo.WriteClientHello/time.Millisecond))
-			timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, int64(timingState.clientTimingInfo.WriteKEMCiphertext/time.Millisecond))
+			timingsFullProtocol = append(timingsFullProtocol, float64(timingState.clientTimingInfo.FullProtocol/time.Millisecond))
+			timingsProcessServerHello = append(timingsProcessServerHello, float64(timingState.clientTimingInfo.ProcessServerHello/time.Millisecond))
+			timingsWriteClientHello = append(timingsWriteClientHello, float64(timingState.clientTimingInfo.WriteClientHello/time.Millisecond))
+			timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, float64(timingState.clientTimingInfo.WriteKEMCiphertext/time.Millisecond))
 		}
+
+		//save results first
+		saveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes)
 
 		algoResults = computeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
 		algoResults.kexName = k
@@ -151,7 +196,7 @@ func main() {
 
 		algoResultsList = append(algoResultsList, algoResults)
 
-		boxPlotValues = append(boxPlotValues, intArrayToFloat64(timingsFullProtocol))
+		boxPlotValues = append(boxPlotValues, (timingsFullProtocol))
 		kexNames = append(kexNames, k)
 
 		port++
