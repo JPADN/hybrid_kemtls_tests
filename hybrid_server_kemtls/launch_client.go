@@ -112,10 +112,10 @@ func saveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64,
 	csvwriter := csv.NewWriter(csvFile)
 
 	for i := 0; i < hs; i++ {
-		arrayStr := []string{name, fmt.Sprint(timingsFullProtocol[i]),
-			fmt.Sprint(timingsProcessServerHello[i]),
-			fmt.Sprint(timingsWriteClientHello[i]),
-			fmt.Sprint(timingsProcessServerHello[i])}
+		arrayStr := []string{name, fmt.Sprintf("%f", timingsFullProtocol[i]),
+			fmt.Sprintf("%f", timingsProcessServerHello[i]),
+			fmt.Sprintf("%f", timingsWriteClientHello[i]),
+			fmt.Sprintf("%f", timingsProcessServerHello[i])}
 
 		if err := csvwriter.Write(arrayStr); err != nil {
 			log.Fatalln("error writing record to file", err)
@@ -181,10 +181,10 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			timingsFullProtocol = append(timingsFullProtocol, float64(timingState.clientTimingInfo.FullProtocol/time.Millisecond))
-			timingsProcessServerHello = append(timingsProcessServerHello, float64(timingState.clientTimingInfo.ProcessServerHello/time.Millisecond))
-			timingsWriteClientHello = append(timingsWriteClientHello, float64(timingState.clientTimingInfo.WriteClientHello/time.Millisecond))
-			timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, float64(timingState.clientTimingInfo.WriteKEMCiphertext/time.Millisecond))
+			timingsFullProtocol = append(timingsFullProtocol, float64(timingState.clientTimingInfo.FullProtocol)/float64(time.Millisecond))
+			timingsProcessServerHello = append(timingsProcessServerHello, float64(timingState.clientTimingInfo.ProcessServerHello)/float64(time.Millisecond))
+			timingsWriteClientHello = append(timingsWriteClientHello, float64(timingState.clientTimingInfo.WriteClientHello)/float64(time.Millisecond))
+			timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, float64(timingState.clientTimingInfo.WriteKEMCiphertext)/float64(time.Millisecond))
 		}
 
 		//save results first
