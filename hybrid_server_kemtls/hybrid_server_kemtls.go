@@ -1,19 +1,21 @@
 package main
 
 import (
+	"circl/sign"
+	circlSchemes "circl/sign/schemes"
+	"crypto/kem"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"crypto/kem"
-	"crypto/rand"
+	"errors"
+	"flag"
 	"fmt"
 	"log"
-	"net"
-	"time"
 	"math/big"
+	"net"
 	"strings"
-	"flag"
-	"errors"
+	"time"
 )
 
 var (
@@ -60,34 +62,48 @@ func nameToCurveID(name string) (tls.CurveID, error) {
 	return curveID, nil
 }
 
+func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool) ([]byte, interface{}, error) {
 
-func createHybridCertificate(curveID tls.CurveID, signer *x509.Certificate, signerPrivKey interface{}) ([]byte, *kem.PrivateKey, error) {
+	var _validFor time.Duration = 86400000000000  // JP: TODO:
+	var _host string = "127.0.0.1"	
+	var keyUsage x509.KeyUsage
+	var commonName string
+	
+	var pub, priv interface{}
+	var err error
 
-	var _validFrom string
-	var _validFor time.Duration = 86400000000000
-	var _host string = "127.0.0.1"
+	var certDERBytes []byte
 
-	kemID := kem.ID(curveID)
-
-	hyPub, hyPriv, err := kem.GenerateKey(rand.Reader, kemID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	/* ----------------- Copied from crypto/tls/generate_cert.go ---------------- */
-
-	// keyUsage := x509.KeyUsageDigitalSignature
-	keyUsage := x509.KeyUsageKeyEncipherment  // or |=
-
-	var notBefore time.Time
-	if len(_validFrom) == 0 {
-		notBefore = time.Now()
-	} else {
-		notBefore, err = time.Parse("Jan 2 15:04:05 2006", _validFrom)
-		if err != nil {
-			log.Fatalf("Failed to parse creation date: %v", err)
+	if isCA {
+		if isSelfSigned {
+			commonName = "Root CA"
 		}
+		commonName = "Intermediate CA"		
+	} else {
+		commonName = "Server"
 	}
+
+	if curveID, ok := pubkeyAlgo.(tls.CurveID); ok {
+		kemID := kem.ID(curveID)
+
+		pub, priv, err = kem.GenerateKey(rand.Reader, kemID)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keyUsage = x509.KeyUsageKeyEncipherment // or |=
+	
+		} else if scheme, ok := pubkeyAlgo.(sign.Scheme); ok {
+		pub, priv, err = scheme.GenerateKey()
+
+		if err != nil {
+			log.Fatalf("Failed to generate private key: %v", err)
+		}
+		
+		keyUsage = x509.KeyUsageDigitalSignature
+	}
+	
+	notBefore := time.Now()
 
 	notAfter := notBefore.Add(_validFor)
 
@@ -97,10 +113,10 @@ func createHybridCertificate(curveID tls.CurveID, signer *x509.Certificate, sign
 		log.Fatalf("Failed to generate serial number: %v", err)
 	}
 
-	hybridTemplate := x509.Certificate{
+	certTemplate := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			CommonName: "Hybrid Leaf Certificate",
+			CommonName: commonName,
 		},
 		NotBefore: notBefore,
 		NotAfter:  notAfter,
@@ -113,20 +129,28 @@ func createHybridCertificate(curveID tls.CurveID, signer *x509.Certificate, sign
 	hosts := strings.Split(_host, ",")
 	for _, h := range hosts {
 		if ip := net.ParseIP(h); ip != nil {
-			hybridTemplate.IPAddresses = append(hybridTemplate.IPAddresses, ip)
+			certTemplate.IPAddresses = append(certTemplate.IPAddresses, ip)
 		} else {
-			hybridTemplate.DNSNames = append(hybridTemplate.DNSNames, h)
+			certTemplate.DNSNames = append(certTemplate.DNSNames, h)
 		}
 	}
-	
-	/* ----------------------------------- End ---------------------------------- */
 
-	derBytes, err := x509.CreateCertificate(rand.Reader, &hybridTemplate, signer, hyPub, signerPrivKey)
+	if isCA {
+		certTemplate.IsCA = true
+		certTemplate.KeyUsage |= x509.KeyUsageCertSign
+	}
+
+	if isSelfSigned {
+		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, &certTemplate, pub, priv)	
+	} else {
+		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, signer, pub, signerPrivKey)
+	}
+
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return derBytes, hyPriv, nil
+	return certDERBytes, priv, nil
 }
 
 
@@ -147,9 +171,26 @@ func initServer(curveID tls.CurveID) *tls.Config {
 		panic(err)
 	}
 
+	/* ----------------------------- Intermediate CA ---------------------------- */
+
+	scheme := circlSchemes.ByName("Ed448-Dilithium4")  // or Ed25519-Dilithium3
+	if scheme == nil {
+		log.Fatalf("No such Circl scheme: %s", scheme)
+	}
+
+	intCACertBytes, intCAPriv, err := createCertificate(scheme, rootCertP256.Leaf, rootCertP256.PrivateKey, true, false)
+	if err != nil {
+		panic(err)
+	}
+
+	intCACert, err := x509.ParseCertificate(intCACertBytes)
+	if err != nil {
+		panic(err)
+	}
+
 	/* ------------------------- Hybrid Leaf Certificate ------------------------ */
 
-	certBytes, certPriv, err := createHybridCertificate(curveID, rootCertP256.Leaf, rootCertP256.PrivateKey)
+	certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false)
 	if err != nil {
 		panic(err)
 	}
@@ -170,6 +211,8 @@ func initServer(curveID tls.CurveID) *tls.Config {
 		MaxVersion:    tls.VersionTLS13,
 		KEMTLSEnabled: true,
 	}
+
+	hybridCert.Certificate = append(hybridCert.Certificate, intCACertBytes)
 
 	cfg.Certificates = make([]tls.Certificate, 1)
 	cfg.Certificates[0] = *hybridCert
