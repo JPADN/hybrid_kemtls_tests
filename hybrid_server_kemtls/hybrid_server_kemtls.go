@@ -21,34 +21,10 @@ import (
 var (
 	kexAlgo   = flag.String("kex", "Kyber512X25519", "KEX Algorithm")
 	authAlgo  = flag.String("auth", "Kyber512X25519", "Authentication Algorithm")
+	
+	hsAlgorithms = map[string]tls.CurveID {"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
+																				 "SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
 )
-// The Root CA certificate and key were generated with the following program, available in the
-// crypto/tls directory:
-//
-//	go run generate_cert.go -ecdsa-curve P256 -host 127.0.0.1 -ca true
-
-var rootCertPEMP256 = `-----BEGIN CERTIFICATE-----
-MIIBijCCATGgAwIBAgIRALM63nKUutZeH12Fk/5tChgwCgYIKoZIzj0EAwIwEjEQ
-MA4GA1UEChMHQWNtZSBDbzAeFw0yMTA0MTkxMTAyMzhaFw0yMjA0MTkxMTAyMzha
-MBIxEDAOBgNVBAoTB0FjbWUgQ28wWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAR4
-n0U8wpgVD81/HGgNbUW/8ZoLUT1nSUvZpntvzZ9nCLFWjf6X/zOO+Zpw9ci+Ob/H
-Db8ikQZ9GR1L8GStT7fjo2gwZjAOBgNVHQ8BAf8EBAMCAoQwEwYDVR0lBAwwCgYI
-KwYBBQUHAwEwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQU3bt5t8hhnxTne+C/
-lqWvK7ytdMAwDwYDVR0RBAgwBocEfwAAATAKBggqhkjOPQQDAgNHADBEAiAmR2b0
-Zf/yqBQWNjcb5BkEMXXB+HUYbUXWal0cQf8tswIgIN5sngQOABJiFfoJo6PCB2+V
-Uf8DiE3gx/2Z4bZugww=
------END CERTIFICATE-----
-`
-
-var rootKeyPEMP256 = `-----BEGIN EC PRIVATE KEY-----
-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQggzl0gcTDyAi7edv5
-1aPR0dlDog4XCJdftcdPCjI1xpmhRANCAAR4n0U8wpgVD81/HGgNbUW/8ZoLUT1n
-SUvZpntvzZ9nCLFWjf6X/zOO+Zpw9ci+Ob/HDb8ikQZ9GR1L8GStT7fj
------END EC PRIVATE KEY-----
-`
-
-var hsAlgorithms = map[string]tls.CurveID {"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
-																																	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
 
 func nameToCurveID(name string) (tls.CurveID, error) {
 	curveID, prs := hsAlgorithms[name]
@@ -153,32 +129,32 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	return certDERBytes, priv, nil
 }
 
-
-func initServer(curveID tls.CurveID) *tls.Config {
-	rootCertP256 := new(tls.Certificate)
-	hybridCert := new(tls.Certificate)
-	var err error
-
+func initCAs() (*x509.Certificate, *x509.Certificate, interface{}){
 	/* ---------------------------- Root Certificate ---------------------------- */
 
-	*rootCertP256, err = tls.X509KeyPair([]byte(rootCertPEMP256), []byte(rootKeyPEMP256))
+	rootCAScheme := circlSchemes.ByName("Ed448-Dilithium4")  // or Ed25519-Dilithium3
+	if rootCAScheme == nil {
+		log.Fatalf("No such Circl scheme: %s", rootCAScheme)
+	}
+
+	rootCACertBytes, rootCAPriv, err := createCertificate(rootCAScheme, nil, nil, true, true)
 	if err != nil {
 		panic(err)
 	}
 
-	rootCertP256.Leaf, err = x509.ParseCertificate(rootCertP256.Certificate[0])
+	rootCACert, err := x509.ParseCertificate(rootCACertBytes)
 	if err != nil {
 		panic(err)
 	}
-
+	
 	/* ----------------------------- Intermediate CA ---------------------------- */
 
-	scheme := circlSchemes.ByName("Ed448-Dilithium4")  // or Ed25519-Dilithium3
-	if scheme == nil {
-		log.Fatalf("No such Circl scheme: %s", scheme)
+	intCAScheme := circlSchemes.ByName("Ed448-Dilithium4")  // or Ed25519-Dilithium3
+	if intCAScheme == nil {
+		log.Fatalf("No such Circl scheme: %s", intCAScheme)
 	}
 
-	intCACertBytes, intCAPriv, err := createCertificate(scheme, rootCertP256.Leaf, rootCertP256.PrivateKey, true, false)
+	intCACertBytes, intCAPriv, err := createCertificate(intCAScheme, rootCACert, rootCAPriv, true, false)
 	if err != nil {
 		panic(err)
 	}
@@ -188,7 +164,14 @@ func initServer(curveID tls.CurveID) *tls.Config {
 		panic(err)
 	}
 
-	/* ------------------------- Hybrid Leaf Certificate ------------------------ */
+	return rootCACert, intCACert, intCAPriv
+}
+
+
+
+func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv interface{}) *tls.Config {
+	hybridCert := new(tls.Certificate)
+	var err error
 
 	certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false)
 	if err != nil {
@@ -212,7 +195,7 @@ func initServer(curveID tls.CurveID) *tls.Config {
 		KEMTLSEnabled: true,
 	}
 
-	hybridCert.Certificate = append(hybridCert.Certificate, intCACertBytes)
+	hybridCert.Certificate = append(hybridCert.Certificate, intCACert.Raw)
 
 	cfg.Certificates = make([]tls.Certificate, 1)
 	cfg.Certificates[0] = *hybridCert
@@ -220,15 +203,7 @@ func initServer(curveID tls.CurveID) *tls.Config {
 	return cfg
 }
 
-func initClient() *tls.Config {
-	
-	rootCertP256 := new(tls.Certificate)
-	var err error
-	
-	*rootCertP256, err = tls.X509KeyPair([]byte(rootCertPEMP256), []byte(rootKeyPEMP256))
-	if err != nil {
-		panic(err)
-	}
+func initClient(rootCA *x509.Certificate) *tls.Config {
 	
 	ccfg := &tls.Config{
 		MinVersion:                 tls.VersionTLS10,
@@ -240,13 +215,8 @@ func initClient() *tls.Config {
 	}
 
 	ccfg.RootCAs = x509.NewCertPool()
-
-	x509Root, err := x509.ParseCertificate(rootCertP256.Certificate[0])
-	if err != nil {
-		panic(err)
-	}
 	
-	ccfg.RootCAs.AddCert(x509Root)
+	ccfg.RootCAs.AddCert(rootCA)
 
 	return ccfg
 }
@@ -354,8 +324,10 @@ func main() {
 	serverMsg := "hello, client"
 	clientMsg := "hello, server"
 
-	serverConfig := initServer(authCurveID)
-	clientConfig := initClient()
+	rootCACert, intCACert, intCAPriv := initCAs();
+
+	serverConfig := initServer(authCurveID, intCACert, intCAPriv)
+	clientConfig := initClient(rootCACert)
 	
 	// Select here the algorithm to be used in the KEX
 	serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
