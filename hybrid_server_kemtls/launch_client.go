@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gonum.org/v1/plot/plotter"
+	"crypto/x509"
 )
 
 type ClientResultsInfo struct {
@@ -141,6 +142,21 @@ func main() {
 
 	port := 4433
 
+	/* -------------------------------- Modified -------------------------------- */
+	rootCertP256 := new(tls.Certificate)
+	var err error
+
+	*rootCertP256, err = tls.X509KeyPair([]byte(rootCertPEMP256), []byte(rootKeyPEMP256))
+		if err != nil {
+			panic(err)
+		}
+
+	rootCertP256.Leaf, err = x509.ParseCertificate(rootCertP256.Certificate[0])
+	if err != nil {
+		panic(err)
+	}
+	/* ----------------------------------- End ---------------------------------- */
+
 	//struct for the metrics
 	var algoResults ClientResultsInfo
 
@@ -163,7 +179,10 @@ func main() {
 			log.Fatal(err)
 		}
 
-		clientConfig := initClient()
+		/* -------------------------------- Modified -------------------------------- */
+		clientConfig := initClient(rootCertP256.Leaf)
+		/* ----------------------------------- End ---------------------------------- */
+		
 		// Select here the algorithm to be used in the KEX
 		clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 

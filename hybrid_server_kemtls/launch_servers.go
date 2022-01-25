@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"crypto/x509"
 )
 
 /*var (
@@ -35,6 +36,23 @@ func launchKEMTLSServer() {
 
 	keys := sortAlgorithmsMap()
 
+	/* -------------------------------- Modified -------------------------------- */
+	rootCertP256 := new(tls.Certificate)
+	var err error
+
+	*rootCertP256, err = tls.X509KeyPair([]byte(rootCertPEMP256), []byte(rootKeyPEMP256))
+		if err != nil {
+			panic(err)
+		}
+
+	rootCertP256.Leaf, err = x509.ParseCertificate(rootCertP256.Certificate[0])
+	if err != nil {
+		panic(err)
+	}
+
+	intCACert, intCAPriv := initCAs(rootCertP256.Leaf, rootCertP256.PrivateKey)
+	/* ----------------------------------- End ---------------------------------- */
+
 	//for each algo
 	for _, k := range keys {
 		strport := fmt.Sprintf("%d", port)
@@ -49,7 +67,11 @@ func launchKEMTLSServer() {
 		}*/
 		authCurveID := kexCurveID
 
-		serverConfig := initServer(authCurveID)
+		
+		/* -------------------------------- Modified -------------------------------- */		
+		serverConfig := initServer(authCurveID, intCACert, intCAPriv)
+		/* ----------------------------------- End ---------------------------------- */
+		
 		// Select here the algorithm to be used in the KEX
 		serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
