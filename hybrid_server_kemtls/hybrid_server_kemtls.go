@@ -64,7 +64,7 @@ func nameToCurveID(name string) (tls.CurveID, error) {
 func createHybridCertificate(curveID tls.CurveID, signer *x509.Certificate, signerPrivKey interface{}) ([]byte, *kem.PrivateKey, error) {
 
 	var _validFrom string
-	var _validFor time.Duration
+	var _validFor time.Duration = 86400000000000
 	var _host string = "127.0.0.1"
 
 	kemID := kem.ID(curveID)
@@ -171,15 +171,6 @@ func initServer(curveID tls.CurveID) *tls.Config {
 		KEMTLSEnabled: true,
 	}
 
-	// The root certificates for the peer.
-	cfg.RootCAs = x509.NewCertPool()
-
-	x509Root, err := x509.ParseCertificate(rootCertP256.Certificate[0])
-	if err != nil {
-		panic(err)
-	}
-	cfg.RootCAs.AddCert(x509Root)
-
 	cfg.Certificates = make([]tls.Certificate, 1)
 	cfg.Certificates[0] = *hybridCert
 
@@ -187,14 +178,32 @@ func initServer(curveID tls.CurveID) *tls.Config {
 }
 
 func initClient() *tls.Config {
+	
+	rootCertP256 := new(tls.Certificate)
+	var err error
+	
+	*rootCertP256, err = tls.X509KeyPair([]byte(rootCertPEMP256), []byte(rootKeyPEMP256))
+	if err != nil {
+		panic(err)
+	}
+	
 	ccfg := &tls.Config{
 		MinVersion:                 tls.VersionTLS10,
 		MaxVersion:                 tls.VersionTLS13,
-		InsecureSkipVerify:         true, // Setting it to true due to the fact that it doesn't contain any IP SANs
+		InsecureSkipVerify:         false,
 		SupportDelegatedCredential: false,
 
 		KEMTLSEnabled: true,
 	}
+
+	ccfg.RootCAs = x509.NewCertPool()
+
+	x509Root, err := x509.ParseCertificate(rootCertP256.Certificate[0])
+	if err != nil {
+		panic(err)
+	}
+	
+	ccfg.RootCAs.AddCert(x509Root)
 
 	return ccfg
 }

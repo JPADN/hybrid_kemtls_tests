@@ -11,10 +11,10 @@
       "program": "${workspaceRoot}/teste/teste.go",
     },
     {
-      "name": "server_kemtls",
+      "name": "hybrid_server_kemtls",
       "type": "go",
       "request": "launch",
-      "program": "${workspaceRoot}/server_kemtls/server_kemtls.go",
+      "program": "${workspaceRoot}/hybrid_server_kemtls/hybrid_server_kemtls.go",
     }
   ]
 }
