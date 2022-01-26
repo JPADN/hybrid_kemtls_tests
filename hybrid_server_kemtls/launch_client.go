@@ -9,10 +9,13 @@ import (
 	"log"
 	"math"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
-	"gonum.org/v1/plot/plotter"
 	"crypto/x509"
+
+	"gonum.org/v1/plot/plotter"
 )
 
 type ClientResultsInfo struct {
@@ -69,14 +72,18 @@ func computeStats(timingsFullProtocol []float64, timingsProcessServerHello []flo
 //print results
 func printStatistics(results []ClientResultsInfo) {
 	//header
-	fmt.Print("TestName\t| AvgClientTotalTime | StdevClientTotalTime |")
+	fmt.Print("TestName\t\t| AvgClientTotalTime | StdevClientTotalTime |")
 	fmt.Print("AvgWrtCHelloTime | StdevWrtCHelloTime |")
 	fmt.Print("AvgPrSHelloTime | StdevPrSHelloTime |")
 	fmt.Println("AvgWrtKEMCtTime | StdevWrtKEMCtTime")
 
 	for _, r := range results {
 		//content
-		fmt.Print(r.kexName + "\t|")
+		if len(r.kexName) > 17 {
+			fmt.Print(r.kexName + "\t|")
+		} else {
+			fmt.Print(r.kexName + "\t\t|")
+		}
 		fmt.Printf(" %f\t     | %f\t\t    |", r.avgTotalTime, r.stdevTotalTime)
 		fmt.Printf(" %f\t      | %f\t   |", r.avgWriteClientHello, r.stdevWriteClientHello)
 		fmt.Printf(" %f\t    | %f\t        |", r.avgProcessServerHello, r.stdevProcessServerHello)
@@ -126,13 +133,54 @@ func saveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64,
 	csvFile.Close()
 }
 
+func printHybridPenalty(results []ClientResultsInfo) {
+	//hybrid prefixes
+	re := regexp.MustCompile(`P256|P384|P521|x25519|x448`)
+
+	//header
+	fmt.Println("------ Hybrid Penalty ------")
+	fmt.Print("TestName\t\t\t| AvgClientTotalTime Penalty | ")
+	fmt.Print("AvgWrtCHelloTime Penalty | ")
+	fmt.Print("AvgPrSHelloTime Penalty |")
+	fmt.Println("AvgWrtKEMCtTime Penalty ")
+
+	foundHybrid := false
+
+	for _, r1 := range results {
+		if re.MatchString(r1.kexName) {
+			foundHybrid = true
+			//find the PQC-only correspondence
+			for _, r2 := range results { //str,substr
+				if (strings.Contains(r1.kexName, r2.kexName)) && (r1.kexName != r2.kexName) {
+
+					if len(r1.kexName) > 17 {
+						fmt.Print(r1.kexName + " - " + r2.kexName + " |")
+					} else {
+						fmt.Print(r1.kexName + " - " + r2.kexName + "\t|")
+					}
+
+					fmt.Printf(" %f\t\t     |", r1.avgTotalTime-r2.avgTotalTime)
+					fmt.Printf(" %f\t\t        |", r1.avgWriteClientHello-r2.avgWriteClientHello)
+					fmt.Printf(" %f\t          |", r1.avgProcessServerHello-r2.avgProcessServerHello)
+					fmt.Printf(" %f\t \n", r1.avgWriteKEMCiphertext-r2.avgWriteKEMCiphertext)
+				}
+			}
+		}
+	}
+	if foundHybrid == false {
+		fmt.Println("No hybrid found in this test.")
+	}
+}
+
 func resultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
 	printStatistics(results)
+	printHybridPenalty(results)
 	genbar(results, "Avg Completion Time - Client (ms)")
 	genbar(results, "Avg Write Client Hello Time (ms)")
 	genbar(results, "Avg Process Server Hello - Client (ms)")
 	genbar(results, "Avg Write KEM Ciphertext - Client (ms)")
 	boxplot(names, boxPlotValues, hs)
+	barMarkLines(results)
 }
 
 func main() {
@@ -147,9 +195,9 @@ func main() {
 	var err error
 
 	*rootCertP256, err = tls.X509KeyPair([]byte(rootCertPEMP256), []byte(rootKeyPEMP256))
-		if err != nil {
-			panic(err)
-		}
+	if err != nil {
+		panic(err)
+	}
 
 	rootCertP256.Leaf, err = x509.ParseCertificate(rootCertP256.Certificate[0])
 	if err != nil {
@@ -182,7 +230,7 @@ func main() {
 		/* -------------------------------- Modified -------------------------------- */
 		clientConfig := initClient(rootCertP256.Leaf)
 		/* ----------------------------------- End ---------------------------------- */
-		
+
 		// Select here the algorithm to be used in the KEX
 		clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 

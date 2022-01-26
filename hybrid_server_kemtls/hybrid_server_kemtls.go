@@ -52,8 +52,33 @@ SUvZpntvzZ9nCLFWjf6X/zOO+Zpw9ci+Ob/HDb8ikQZ9GR1L8GStT7fj
 -----END EC PRIVATE KEY-----
 `
 
-var hsAlgorithms = map[string]tls.CurveID{"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
-	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
+//CIRCL
+//var hsAlgorithms = map[string]tls.CurveID{"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
+//	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
+
+//LIBOQS
+var hsAlgorithms = map[string]tls.CurveID{
+	"P256_Kyber512": tls.P256_Kyber512, "P384_Kyber768": tls.P384_Kyber768,
+	"P521_Kyber1024": tls.P521_Kyber1024, "P256_LightSaber_KEM": tls.P256_LightSaber_KEM,
+	"P384_Saber_KEM": tls.P384_Saber_KEM, "P521_FireSaber_KEM": tls.P521_FireSaber_KEM,
+	"P256_NTRU_HPS_2048_509":  tls.P256_NTRU_HPS_2048_509,
+	"P384_NTRU_HPS_2048_677":  tls.P384_NTRU_HPS_2048_677,
+	"P521_NTRU_HPS_4096_821":  tls.P521_NTRU_HPS_4096_821,
+	"P521_NTRU_HPS_4096_1229": tls.P521_NTRU_HPS_4096_1229,
+	"P384_NTRU_HRSS_701":      tls.P384_NTRU_HRSS_701,
+	"P521_NTRU_HRSS_1373":     tls.P521_NTRU_HRSS_1373,
+	"Kyber512":                tls.OQS_Kyber512, "Kyber768": tls.OQS_Kyber768,
+	"Kyber1024": tls.OQS_Kyber1024,
+	//"Saber_KEM":     tls.Saber_KEM,
+	//"LightSaber_KEM":     tls.LightSaber_KEM,
+	//"FireSaber_KEM":      tls.FireSaber_KEM,
+	//"NTRU_HPS_2048_509":  tls.NTRU_HPS_2048_509,
+	//"NTRU_HPS_2048_677":  tls.NTRU_HPS_2048_677,
+	//"NTRU_HPS_4096_821":  tls.NTRU_HPS_4096_821,
+	//"NTRU_HPS_4096_1229": tls.NTRU_HPS_4096_1229,
+	//"NTRU_HRSS_701": tls.NTRU_HRSS_701,
+	//"NTRU_HRSS_1373": tls.NTRU_HRSS_1373,
+}
 
 //sort and returns sorted keys
 func sortAlgorithmsMap() (keys []string) {
@@ -80,11 +105,11 @@ func nameToCurveID(name string) (tls.CurveID, error) {
 
 func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool) ([]byte, interface{}, error) {
 
-	var _validFor time.Duration = 86400000000000  // JP: TODO:
-	var _host string = "127.0.0.1"	
+	var _validFor time.Duration = 86400000000000 // JP: TODO:
+	var _host string = "127.0.0.1"
 	var keyUsage x509.KeyUsage
 	var commonName string
-	
+
 	var pub, priv interface{}
 	var err error
 
@@ -94,7 +119,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		if isSelfSigned {
 			commonName = "Root CA"
 		}
-		commonName = "Intermediate CA"		
+		commonName = "Intermediate CA"
 	} else {
 		commonName = "Server"
 	}
@@ -108,17 +133,17 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		}
 
 		keyUsage = x509.KeyUsageKeyEncipherment // or |=
-	
-		} else if scheme, ok := pubkeyAlgo.(sign.Scheme); ok {
+
+	} else if scheme, ok := pubkeyAlgo.(sign.Scheme); ok {
 		pub, priv, err = scheme.GenerateKey()
 
 		if err != nil {
 			log.Fatalf("Failed to generate private key: %v", err)
 		}
-		
+
 		keyUsage = x509.KeyUsageDigitalSignature
 	}
-	
+
 	notBefore := time.Now()
 
 	notAfter := notBefore.Add(_validFor)
@@ -157,7 +182,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	}
 
 	if isSelfSigned {
-		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, &certTemplate, pub, priv)	
+		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, &certTemplate, pub, priv)
 	} else {
 		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, signer, pub, signerPrivKey)
 	}
@@ -169,11 +194,11 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	return certDERBytes, priv, nil
 }
 
-func initCAs(rootCACert *x509.Certificate, rootCAPriv interface{}) (*x509.Certificate, interface{}){
+func initCAs(rootCACert *x509.Certificate, rootCAPriv interface{}) (*x509.Certificate, interface{}) {
 
 	/* ----------------------------- Intermediate CA ---------------------------- */
 
-	intCAScheme := circlSchemes.ByName("Ed448-Dilithium4")  // or Ed25519-Dilithium3
+	intCAScheme := circlSchemes.ByName("Ed448-Dilithium4") // or Ed25519-Dilithium3
 	if intCAScheme == nil {
 		log.Fatalf("No such Circl scheme: %s", intCAScheme)
 	}
@@ -190,7 +215,6 @@ func initCAs(rootCACert *x509.Certificate, rootCAPriv interface{}) (*x509.Certif
 
 	return intCACert, intCAPriv
 }
-
 
 func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv interface{}) *tls.Config {
 	hybridCert := new(tls.Certificate)
@@ -227,7 +251,7 @@ func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv inte
 }
 
 func initClient(rootCA *x509.Certificate) *tls.Config {
-	
+
 	ccfg := &tls.Config{
 		MinVersion:                 tls.VersionTLS10,
 		MaxVersion:                 tls.VersionTLS13,
@@ -238,12 +262,11 @@ func initClient(rootCA *x509.Certificate) *tls.Config {
 	}
 
 	ccfg.RootCAs = x509.NewCertPool()
-	
+
 	ccfg.RootCAs.AddCert(rootCA)
 
 	return ccfg
 }
-
 
 func newLocalListener(ip string, port string) net.Listener {
 	ln, err := net.Listen("tcp", ip+":"+port)
