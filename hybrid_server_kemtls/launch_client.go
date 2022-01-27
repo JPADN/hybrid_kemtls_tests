@@ -72,27 +72,29 @@ func computeStats(timingsFullProtocol []float64, timingsProcessServerHello []flo
 //print results
 func printStatistics(results []ClientResultsInfo) {
 	//header
-	fmt.Print("TestName\t\t| AvgClientTotalTime | StdevClientTotalTime |")
-	fmt.Print("AvgWrtCHelloTime | StdevWrtCHelloTime |")
-	fmt.Print("AvgPrSHelloTime | StdevPrSHelloTime |")
-	fmt.Println("AvgWrtKEMCtTime | StdevWrtKEMCtTime")
+	fmt.Printf("%-23s | ", "TestName")
+	fmt.Printf("%-20s | ", "AvgClientTotalTime")
+	fmt.Printf("%-20s | ", "StdevClientTotalTime")
+	fmt.Printf("%-20s | ", "AvgWrtCHelloTime")
+	fmt.Printf("%-20s | ", "StdevWrtCHelloTime")
+	fmt.Printf("%-20s | ", "AvgPrSHelloTime")
+	fmt.Printf("%-20s | ", "StdevPrSHelloTime")
+	fmt.Printf("%-20s | ", "AvgWrtKEMCtTime")
+	fmt.Printf("%-20s ", "StdevWrtKEMCtTime")
 
 	for _, r := range results {
 		//content
-		if len(r.kexName) > 17 {
-			fmt.Print(r.kexName + "\t|")
-		} else {
-			fmt.Print(r.kexName + "\t\t|")
-		}
-		fmt.Printf(" %f\t     | %f\t\t    |", r.avgTotalTime, r.stdevTotalTime)
-		fmt.Printf(" %f\t      | %f\t   |", r.avgWriteClientHello, r.stdevWriteClientHello)
-		fmt.Printf(" %f\t    | %f\t        |", r.avgProcessServerHello, r.stdevProcessServerHello)
-		fmt.Printf(" %f\t | %f\n", r.avgWriteKEMCiphertext, r.stdevWriteKEMCiphertext)
-
-		/*fmt.Printf("Avg Client Total Time           | Stdev Client Total Time \n\t\t %f\t|\t%f\t\n", r.avgTotalTime, r.stdevTotalTime)
-		fmt.Printf("Avg Write Client Hello Time     | Stdev Write Client Hello Time \n\t\t %f\t|\t%f\t\n", r.avgWriteClientHello, r.stdevWriteClientHello)
-		fmt.Printf("Avg Process Server Hello Time   | Stdev Process Server Hello Time \n\t\t %f\t|\t%f\t\n", r.avgProcessServerHello, r.stdevProcessServerHello)
-		fmt.Printf("Avg Write KEM Ciphertext Time   | Stdev Write KEM Ciphertext Time \n\t\t %f\t|\t%f\t\n", r.avgWriteKEMCiphertext, r.stdevWriteKEMCiphertext)*/
+		fmt.Println()
+		fmt.Printf("%-23s |", r.kexName)
+				
+		fmt.Printf(" %-20f |", r.avgTotalTime)
+		fmt.Printf(" %-20f |", r.stdevTotalTime)
+		fmt.Printf(" %-20f |", r.avgWriteClientHello)
+		fmt.Printf(" %-20f |", r.stdevWriteClientHello)
+		fmt.Printf(" %-20f |", r.avgProcessServerHello)
+		fmt.Printf(" %-20f |", r.stdevProcessServerHello)
+		fmt.Printf(" %-20f |", r.avgWriteKEMCiphertext)
+		fmt.Printf(" %-20f ", r.stdevWriteKEMCiphertext)	
 	}
 }
 
@@ -138,11 +140,13 @@ func printHybridPenalty(results []ClientResultsInfo) {
 	re := regexp.MustCompile(`P256|P384|P521|x25519|x448`)
 
 	//header
-	fmt.Println("------ Hybrid Penalty ------")
-	fmt.Print("TestName\t\t\t| AvgClientTotalTime Penalty | ")
-	fmt.Print("AvgWrtCHelloTime Penalty | ")
-	fmt.Print("AvgPrSHelloTime Penalty |")
-	fmt.Println("AvgWrtKEMCtTime Penalty ")
+	fmt.Println("\n------ Hybrid Penalty ------")
+	fmt.Printf("%-23s | ", "TestName")
+	fmt.Printf("%-26s | ", "AvgClientTotalTime Penalty")
+	fmt.Printf("%-26s | ", "AvgWrtCHelloTime Penalty")
+	fmt.Printf("%-26s | ", "AvgPrSHelloTime Penalty")
+	fmt.Printf("%-26s  ", "AvgWrtKEMCtTime Penalty")	
+	
 
 	foundHybrid := false
 
@@ -152,21 +156,18 @@ func printHybridPenalty(results []ClientResultsInfo) {
 			//find the PQC-only correspondence
 			for _, r2 := range results { //str,substr
 				if (strings.Contains(r1.kexName, r2.kexName)) && (r1.kexName != r2.kexName) {
-
-					if len(r1.kexName) > 17 {
-						fmt.Print(r1.kexName + " - " + r2.kexName + " |")
-					} else {
-						fmt.Print(r1.kexName + " - " + r2.kexName + "\t|")
-					}
-
-					fmt.Printf(" %f\t\t     |", r1.avgTotalTime-r2.avgTotalTime)
-					fmt.Printf(" %f\t\t        |", r1.avgWriteClientHello-r2.avgWriteClientHello)
-					fmt.Printf(" %f\t          |", r1.avgProcessServerHello-r2.avgProcessServerHello)
-					fmt.Printf(" %f\t \n", r1.avgWriteKEMCiphertext-r2.avgWriteKEMCiphertext)
+					fmt.Println("")
+					fmt.Printf("%-23s |", r1.kexName)
+				
+					fmt.Printf(" %-26f |", r1.avgTotalTime-r2.avgTotalTime)
+					fmt.Printf(" %-26f |", r1.avgWriteClientHello-r2.avgWriteClientHello)
+					fmt.Printf(" %-26f |", r1.avgProcessServerHello-r2.avgProcessServerHello)
+					fmt.Printf(" %-26f ", r1.avgWriteKEMCiphertext-r2.avgWriteKEMCiphertext)
 				}
 			}
 		}
 	}
+	fmt.Println("")
 	if foundHybrid == false {
 		fmt.Println("No hybrid found in this test.")
 	}

@@ -56,28 +56,20 @@ SUvZpntvzZ9nCLFWjf6X/zOO+Zpw9ci+Ob/HDb8ikQZ9GR1L8GStT7fj
 //var hsAlgorithms = map[string]tls.CurveID{"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
 //	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
 
-//LIBOQS
+//LIBOQS 
 var hsAlgorithms = map[string]tls.CurveID{
-	"P256_Kyber512": tls.P256_Kyber512, "P384_Kyber768": tls.P384_Kyber768,
-	"P521_Kyber1024": tls.P521_Kyber1024, "P256_LightSaber_KEM": tls.P256_LightSaber_KEM,
-	"P384_Saber_KEM": tls.P384_Saber_KEM, "P521_FireSaber_KEM": tls.P521_FireSaber_KEM,
-	"P256_NTRU_HPS_2048_509":  tls.P256_NTRU_HPS_2048_509,
-	"P384_NTRU_HPS_2048_677":  tls.P384_NTRU_HPS_2048_677,
-	"P521_NTRU_HPS_4096_821":  tls.P521_NTRU_HPS_4096_821,
-	"P521_NTRU_HPS_4096_1229": tls.P521_NTRU_HPS_4096_1229,
-	"P384_NTRU_HRSS_701":      tls.P384_NTRU_HRSS_701,
-	"P521_NTRU_HRSS_1373":     tls.P521_NTRU_HRSS_1373,
-	"Kyber512":                tls.OQS_Kyber512, "Kyber768": tls.OQS_Kyber768,
-	"Kyber1024": tls.OQS_Kyber1024,
-	//"Saber_KEM":     tls.Saber_KEM,
-	//"LightSaber_KEM":     tls.LightSaber_KEM,
-	//"FireSaber_KEM":      tls.FireSaber_KEM,
-	//"NTRU_HPS_2048_509":  tls.NTRU_HPS_2048_509,
-	//"NTRU_HPS_2048_677":  tls.NTRU_HPS_2048_677,
-	//"NTRU_HPS_4096_821":  tls.NTRU_HPS_4096_821,
-	//"NTRU_HPS_4096_1229": tls.NTRU_HPS_4096_1229,
-	//"NTRU_HRSS_701": tls.NTRU_HRSS_701,
-	//"NTRU_HRSS_1373": tls.NTRU_HRSS_1373,
+	"Kyber512": tls.OQS_Kyber512, "P256_Kyber512": tls.P256_Kyber512, 
+	"Kyber768": tls.OQS_Kyber768, "P384_Kyber768": tls.P384_Kyber768,
+	"Kyber1024": tls.OQS_Kyber1024, "P521_Kyber1024": tls.P521_Kyber1024, 
+	"LightSaber_KEM":     tls.LightSaber_KEM, "P256_LightSaber_KEM": tls.P256_LightSaber_KEM,
+	"Saber_KEM": tls.Saber_KEM, "P384_Saber_KEM": tls.P384_Saber_KEM, 
+	"FireSaber_KEM": tls.FireSaber_KEM, "P521_FireSaber_KEM": tls.P521_FireSaber_KEM,
+	"NTRU_HPS_2048_509":  tls.NTRU_HPS_2048_509, "P256_NTRU_HPS_2048_509":  tls.P256_NTRU_HPS_2048_509,
+	"NTRU_HPS_2048_677":  tls.NTRU_HPS_2048_677, "P384_NTRU_HPS_2048_677":  tls.P384_NTRU_HPS_2048_677,
+	"NTRU_HPS_4096_821":  tls.NTRU_HPS_4096_821, "P521_NTRU_HPS_4096_821":  tls.P521_NTRU_HPS_4096_821,
+	"NTRU_HPS_4096_1229": tls.NTRU_HPS_4096_1229, "P521_NTRU_HPS_4096_1229": tls.P521_NTRU_HPS_4096_1229,
+	"NTRU_HRSS_701": tls.NTRU_HRSS_701, "P384_NTRU_HRSS_701":      tls.P384_NTRU_HRSS_701,
+	"NTRU_HRSS_1373": tls.NTRU_HRSS_1373, "P521_NTRU_HRSS_1373":     tls.P521_NTRU_HRSS_1373,						
 }
 
 //sort and returns sorted keys
@@ -88,7 +80,19 @@ func sortAlgorithmsMap() (keys []string) {
 		output = append(output, k)
 	}
 	sort.Strings(output)
-	return output
+
+	//or return a specific ordering (PQC-only then hybrid interleaved together)
+	output2 := []string{"Kyber512", "P256_Kyber512", "Kyber768", "P384_Kyber768",
+	"Kyber1024", "P521_Kyber1024", "LightSaber_KEM", "P256_LightSaber_KEM",
+	"Saber_KEM", "P384_Saber_KEM", "FireSaber_KEM", "P521_FireSaber_KEM",
+	"NTRU_HPS_2048_509", "P256_NTRU_HPS_2048_509",
+	"NTRU_HPS_2048_677", "P384_NTRU_HPS_2048_677",
+	"NTRU_HPS_4096_821", "P521_NTRU_HPS_4096_821",
+	"NTRU_HPS_4096_1229", "P521_NTRU_HPS_4096_1229",
+	"NTRU_HRSS_701", "P384_NTRU_HRSS_701", "NTRU_HRSS_1373", "P521_NTRU_HRSS_1373",	
+	}
+
+	return output2
 }
 
 func nameToCurveID(name string) (tls.CurveID, error) {
