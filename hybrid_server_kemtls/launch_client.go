@@ -181,7 +181,8 @@ func resultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values
 	genbar(results, "Avg Process Server Hello - Client (ms)")
 	genbar(results, "Avg Write KEM Ciphertext - Client (ms)")
 	boxplot(names, boxPlotValues, hs)
-	barMarkLines(results)
+	barMarkLines(results,"All")
+	barMarkLines(results, "L1")
 }
 
 func main() {
@@ -214,6 +215,7 @@ func main() {
 	var algoResultsList []ClientResultsInfo
 
 	//boxPlot data
+	re := regexp.MustCompile(`P256|P384`)
 	var boxPlotValues []plotter.Values
 	var kexNames []string
 
@@ -265,12 +267,15 @@ func main() {
 
 		algoResultsList = append(algoResultsList, algoResults)
 
-		boxPlotValues = append(boxPlotValues, (timingsFullProtocol))
-		kexNames = append(kexNames, k)
+		if re.MatchString(k) {
+			//boxplot data for hybrids
+			boxPlotValues = append(boxPlotValues, (timingsFullProtocol))
+			kexNames = append(kexNames, k)
+		}
 
 		port++
 	}
 	//export results
 	resultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
-
+	fmt.Println("End of test.")
 }

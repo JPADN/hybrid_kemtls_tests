@@ -557,7 +557,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		fmt.Printf("-->| Process Server Finshed       |%v| \n", timingState.clientTimingInfo.ReadServerFinished)
 		fmt.Printf("Client Total time: |%v| \n", timingState.clientTimingInfo.FullProtocol)
 */
-		/*if client.ConnectionState().DidKEMTLS {
+/*		if client.ConnectionState().DidKEMTLS {
 			log.Println("Client Success using kemtls")
 		}*/
 	}
