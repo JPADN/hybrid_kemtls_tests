@@ -37,20 +37,21 @@ func launchKEMTLSServer() {
 	keys := sortAlgorithmsMap()
 
 	/* -------------------------------- Modified -------------------------------- */
-	rootCertP256 := new(tls.Certificate)
+	//rootCertP256 := new(tls.Certificate)
+	rootCertHybrid := new(tls.Certificate)
 	var err error
 
-	*rootCertP256, err = tls.X509KeyPair([]byte(rootCertPEMP256), []byte(rootKeyPEMP256))
-		if err != nil {
-			panic(err)
-		}
-
-	rootCertP256.Leaf, err = x509.ParseCertificate(rootCertP256.Certificate[0])
+	*rootCertHybrid, err = tls.X509KeyPair([]byte(rootCertPEMED25519Dilithim3), []byte(rootKeyPEMED25519Dilithium3))
 	if err != nil {
 		panic(err)
 	}
 
-	intCACert, intCAPriv := initCAs(rootCertP256.Leaf, rootCertP256.PrivateKey)
+	rootCertHybrid.Leaf, err = x509.ParseCertificate(rootCertHybrid.Certificate[0])
+	if err != nil {
+		panic(err)
+	}
+
+	intCACert, intCAPriv := initCAs(rootCertHybrid.Leaf, rootCertHybrid.PrivateKey)
 	/* ----------------------------------- End ---------------------------------- */
 
 	//for each algo
