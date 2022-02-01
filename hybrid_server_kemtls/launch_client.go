@@ -86,7 +86,7 @@ func printStatistics(results []ClientResultsInfo) {
 		//content
 		fmt.Println()
 		fmt.Printf("%-23s |", r.kexName)
-				
+
 		fmt.Printf(" %-20f |", r.avgTotalTime)
 		fmt.Printf(" %-20f |", r.stdevTotalTime)
 		fmt.Printf(" %-20f |", r.avgWriteClientHello)
@@ -94,7 +94,7 @@ func printStatistics(results []ClientResultsInfo) {
 		fmt.Printf(" %-20f |", r.avgProcessServerHello)
 		fmt.Printf(" %-20f |", r.stdevProcessServerHello)
 		fmt.Printf(" %-20f |", r.avgWriteKEMCiphertext)
-		fmt.Printf(" %-20f ", r.stdevWriteKEMCiphertext)	
+		fmt.Printf(" %-20f ", r.stdevWriteKEMCiphertext)
 	}
 }
 
@@ -145,8 +145,7 @@ func printHybridPenalty(results []ClientResultsInfo) {
 	fmt.Printf("%-26s | ", "AvgClientTotalTime Penalty")
 	fmt.Printf("%-26s | ", "AvgWrtCHelloTime Penalty")
 	fmt.Printf("%-26s | ", "AvgPrSHelloTime Penalty")
-	fmt.Printf("%-26s  ", "AvgWrtKEMCtTime Penalty")	
-	
+	fmt.Printf("%-26s  ", "AvgWrtKEMCtTime Penalty")
 
 	foundHybrid := false
 
@@ -156,9 +155,14 @@ func printHybridPenalty(results []ClientResultsInfo) {
 			//find the PQC-only correspondence
 			for _, r2 := range results { //str,substr
 				if (strings.Contains(r1.kexName, r2.kexName)) && (r1.kexName != r2.kexName) {
+					//Fix saber case
+					if r2.kexName == "Saber_KEM" &&
+						(strings.Contains(r1.kexName, "P256_LightSaber_KEM") || strings.Contains(r1.kexName, "P521_FireSaber_KEM")) {
+						continue
+					}
 					fmt.Println("")
 					fmt.Printf("%-23s |", r1.kexName)
-				
+
 					fmt.Printf(" %-26f |", r1.avgTotalTime-r2.avgTotalTime)
 					fmt.Printf(" %-26f |", r1.avgWriteClientHello-r2.avgWriteClientHello)
 					fmt.Printf(" %-26f |", r1.avgProcessServerHello-r2.avgProcessServerHello)
@@ -181,7 +185,7 @@ func resultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values
 	genbar(results, "Avg Process Server Hello - Client (ms)")
 	genbar(results, "Avg Write KEM Ciphertext - Client (ms)")
 	boxplot(names, boxPlotValues, hs)
-	barMarkLines(results,"All")
+	barMarkLines(results, "All")
 	barMarkLines(results, "L1")
 }
 
