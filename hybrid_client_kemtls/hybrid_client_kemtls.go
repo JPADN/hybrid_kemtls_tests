@@ -38,7 +38,7 @@ func nameToCurveID(name string) (tls.CurveID, error) {
 	return curveID, nil
 }
 
-func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool) ([]byte, interface{}, error) {
+func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string) ([]byte, interface{}, error) {
 
 	var _validFor time.Duration = 86400000000000  // JP: TODO:
 	var _host string = "127.0.0.1"	
@@ -55,8 +55,8 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 			commonName = "Root CA"
 		}
 		commonName = "Intermediate CA"		
-	} else {
-		commonName = "Server"
+	} else {		
+		commonName = peer		
 	}
 
 	if curveID, ok := pubkeyAlgo.(tls.CurveID); ok {
@@ -89,17 +89,36 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		log.Fatalf("Failed to generate serial number: %v", err)
 	}
 
-	certTemplate := x509.Certificate{
-		SerialNumber: serialNumber,
-		Subject: pkix.Name{
-			CommonName: commonName,
-		},
-		NotBefore: notBefore,
-		NotAfter:  notAfter,
+	var certTemplate x509.Certificate
 
-		KeyUsage:              keyUsage,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
+	if peer == "client" {
+		certTemplate = x509.Certificate{
+			SerialNumber: serialNumber,
+			Subject: pkix.Name{
+				CommonName: commonName,
+			},
+			NotBefore: notBefore,
+			NotAfter:  notAfter,
+
+			KeyUsage:              keyUsage,
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+			BasicConstraintsValid: true,
+		}
+
+	} else {	
+
+		certTemplate = x509.Certificate{
+			SerialNumber: serialNumber,
+			Subject: pkix.Name{
+				CommonName: commonName,
+			},
+			NotBefore: notBefore,
+			NotAfter:  notAfter,
+
+			KeyUsage:              keyUsage,
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+			BasicConstraintsValid: true,
+		}
 	}
 
 	hosts := strings.Split(_host, ",")
@@ -137,7 +156,7 @@ func initCAs() (*x509.Certificate, *x509.Certificate, interface{}){
 		log.Fatalf("No such Circl scheme: %s", rootCAScheme)
 	}
 
-	rootCACertBytes, rootCAPriv, err := createCertificate(rootCAScheme, nil, nil, true, true)
+	rootCACertBytes, rootCAPriv, err := createCertificate(rootCAScheme, nil, nil, true, true, "server")
 	if err != nil {
 		panic(err)
 	}
@@ -154,7 +173,7 @@ func initCAs() (*x509.Certificate, *x509.Certificate, interface{}){
 		log.Fatalf("No such Circl scheme: %s", intCAScheme)
 	}
 
-	intCACertBytes, intCAPriv, err := createCertificate(intCAScheme, rootCACert, rootCAPriv, true, false)
+	intCACertBytes, intCAPriv, err := createCertificate(intCAScheme, rootCACert, rootCAPriv, true, false, "server")
 	if err != nil {
 		panic(err)
 	}
@@ -169,11 +188,11 @@ func initCAs() (*x509.Certificate, *x509.Certificate, interface{}){
 
 
 
-func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv interface{}) *tls.Config {
+func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
 	hybridCert := new(tls.Certificate)
 	var err error
 
-	certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false)
+	certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false, "server")
 	if err != nil {
 		panic(err)
 	}
@@ -192,6 +211,10 @@ func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv inte
 	cfg := &tls.Config{
 		MinVersion:    tls.VersionTLS10,
 		MaxVersion:    tls.VersionTLS13,
+		InsecureSkipVerify:         false,
+		SupportDelegatedCredential: true,
+		ClientAuth:                 tls.RequireAndVerifyClientCert,
+
 		KEMTLSEnabled: true,
 	}
 
@@ -200,11 +223,34 @@ func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv inte
 	cfg.Certificates = make([]tls.Certificate, 1)
 	cfg.Certificates[0] = *hybridCert
 
+	cfg.RootCAs = x509.NewCertPool()
+	
+	cfg.RootCAs.AddCert(rootCA)
+
 	return cfg
 }
 
-func initClient(rootCA *x509.Certificate) *tls.Config {
+func initClient(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
 	
+	hybridCert := new(tls.Certificate)
+	var err error
+
+	certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false, "client")
+	if err != nil {
+		panic(err)
+	}
+
+	hybridCert.Certificate = append(hybridCert.Certificate, certBytes)
+	hybridCert.PrivateKey = certPriv
+	// hybridCert.SupportedSignatureAlgorithms = []tls.SignatureScheme{tls.Ed25519}
+
+	hybridCert.Leaf, err = x509.ParseCertificate(hybridCert.Certificate[0])
+	if err != nil {
+		panic(err)
+	}
+
+	/* ------------------------------ Configuration ----------------------------- */
+
 	ccfg := &tls.Config{
 		MinVersion:                 tls.VersionTLS10,
 		MaxVersion:                 tls.VersionTLS13,
@@ -213,6 +259,11 @@ func initClient(rootCA *x509.Certificate) *tls.Config {
 
 		KEMTLSEnabled: true,
 	}
+
+	hybridCert.Certificate = append(hybridCert.Certificate, intCACert.Raw)
+
+	ccfg.Certificates = make([]tls.Certificate, 1)
+	ccfg.Certificates[0] = *hybridCert
 
 	ccfg.RootCAs = x509.NewCertPool()
 	
@@ -300,7 +351,7 @@ func testConnWithDC(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		return timingState, false, false, cconnState, sconnState, fmt.Errorf("Client read = %d, %v, data %q; want %d, nil, %s", n, err, buf, len(serverMsg), serverMsg)
 	}
 
-	if peer == "client" {
+	if peer == "server" {
 		if server.ConnectionState().DidKEMTLS && client.ConnectionState().DidKEMTLS {
 			return timingState, true, true, client.ConnectionState(), server.ConnectionState(), nil
 		}
@@ -326,8 +377,8 @@ func main() {
 
 	rootCACert, intCACert, intCAPriv := initCAs();
 
-	serverConfig := initServer(authCurveID, intCACert, intCAPriv)
-	clientConfig := initClient(rootCACert)
+	serverConfig := initServer(authCurveID, intCACert, intCAPriv, rootCACert)
+	clientConfig := initClient(authCurveID, intCACert, intCAPriv, rootCACert)
 	
 	// Select here the algorithm to be used in the KEX
 	serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
@@ -338,7 +389,7 @@ func main() {
 							*authAlgo, kem.ID(authCurveID))
 	
 
-	ts, _, kemtls, _, _, err := testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "client")
+	ts, _, kemtls, _, _, err := testConnWithDC(clientMsg, serverMsg, clientConfig, serverConfig, "server")
 
 	fmt.Println("Client")
 	fmt.Printf("|--> Write Client Hello       %v \n", ts.clientTimingInfo.WriteClientHello)
@@ -353,15 +404,24 @@ func main() {
 	fmt.Printf("   | Receive Server Enc Exts    %v \n", ts.clientTimingInfo.ReadEncryptedExtensions)
 	fmt.Printf("   | Receive Server Certificate %v \n", ts.clientTimingInfo.ReadCertificate)
 	fmt.Printf("   | Write KEM Ciphertext       %v \n", ts.clientTimingInfo.WriteKEMCiphertext)
+	fmt.Printf("<--| Write Certificate          %v \n", ts.clientTimingInfo.WriteCertificate)
+
+	fmt.Println("   Server")
+	fmt.Printf("-->| Receive KEM Ciphertext         %v \n", ts.serverTimingInfo.ReadKEMCiphertext)
+	fmt.Printf("   | Receive Client Certificate     %v \n", ts.serverTimingInfo.ReadCertificate)
+	fmt.Printf("<--| Write KEM Ciphertext           %v \n", ts.serverTimingInfo.WriteKEMCiphertext)
+
+	fmt.Println("Client")
+	fmt.Printf("-->| Process KEM Ciphertext     %v \n", ts.clientTimingInfo.ReadKEMCiphertext)
 	fmt.Printf("<--| Write Client Finished      %v \n", ts.clientTimingInfo.WriteClientFinished)
 
 	fmt.Println("   Server")
-	fmt.Printf("-->| Receive KEM Ciphertext     %v \n", ts.serverTimingInfo.ReadKEMCiphertext)
-	fmt.Printf("   | Receive Client Finished    %v \n", ts.serverTimingInfo.ReadClientFinished)
+	fmt.Printf("-->| Process Client Finished    %v \n", ts.serverTimingInfo.ReadClientFinished)
 	fmt.Printf("<--| Write Server Finished      %v \n", ts.serverTimingInfo.WriteServerFinished)
 
 	fmt.Println("Client")
-	fmt.Printf("-->| Process Server Finshed       %v \n", ts.clientTimingInfo.ReadServerFinished)
+	fmt.Printf("-->| Process Server Finished    %v \n", ts.clientTimingInfo.ReadServerFinished)
+
 	fmt.Printf("Client Total time: %v \n", ts.clientTimingInfo.FullProtocol)
 	fmt.Printf("Server Total time: %v \n", ts.serverTimingInfo.FullProtocol)
 

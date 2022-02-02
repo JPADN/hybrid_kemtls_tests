@@ -15,6 +15,12 @@
       "type": "go",
       "request": "launch",
       "program": "${workspaceRoot}/hybrid_server_kemtls/hybrid_server_kemtls.go",
+    },
+    {
+      "name": "hybrid_client_kemtls",
+      "type": "go",
+      "request": "launch",
+      "program": "${workspaceRoot}/hybrid_client_kemtls/hybrid_client_kemtls.go",
     }
   ]
 }
