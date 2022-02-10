@@ -223,9 +223,9 @@ func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv inte
 	cfg.Certificates = make([]tls.Certificate, 1)
 	cfg.Certificates[0] = *hybridCert
 
-	cfg.RootCAs = x509.NewCertPool()
+	cfg.ClientCAs = x509.NewCertPool()
 	
-	cfg.RootCAs.AddCert(rootCA)
+	cfg.ClientCAs.AddCert(rootCA)
 
 	return cfg
 }
