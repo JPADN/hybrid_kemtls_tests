@@ -61,7 +61,7 @@ func launchPQTLSServer() {
 			if err != nil {
 				log.Fatal(err)
 			}*/
-			authSigID := nameToHybridSigID(*authAlgo)
+			authSigID := nameToHybridSigID(kAuth)
 
 			/* -------------------------------- Modified -------------------------------- */
 			serverConfig := initServer(authSigID, intCACert, intCAPriv)
