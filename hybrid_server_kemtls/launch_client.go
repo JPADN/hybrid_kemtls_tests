@@ -192,16 +192,17 @@ func resultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values
 func main() {
 	flag.Parse()
 
+	var intCACert *x509.Certificate = nil
+	var intCAPriv interface{} = nil
+
 	clientMsg := "hello, server"
 
 	port := 4433
 
-	/* -------------------------------- Modified -------------------------------- */
-	//rootCertP256 := new(tls.Certificate)
 	rootCertHybrid := new(tls.Certificate)
 	var err error
 
-	*rootCertHybrid, err = tls.X509KeyPair([]byte(rootCertPEMED25519Dilithim3), []byte(rootKeyPEMED25519Dilithium3))
+	*rootCertHybrid, err = tls.X509KeyPair([]byte(rootCert), []byte(rootKey))
 	if err != nil {
 		panic(err)
 	}
@@ -210,7 +211,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	/* ----------------------------------- End ---------------------------------- */
+
+	if *clientAuth {
+		// Creating intermediate CA to sign the Client Certificate
+		intCACert, intCAPriv = initCAs(rootCertHybrid.Leaf, rootCertHybrid.PrivateKey)
+	}
 
 	//struct for the metrics
 	var algoResults ClientResultsInfo
@@ -228,16 +233,16 @@ func main() {
 
 	keys := sortAlgorithmsMap()
 	for _, k := range keys {
+		
 		strport := fmt.Sprintf("%d", port)
 		fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
-		kexCurveID, err := nameToCurveID(k)
+		
+		kexCurveID, err := nameToCurveID(k)		
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		/* -------------------------------- Modified -------------------------------- */
-		clientConfig := initClient(rootCertHybrid.Leaf)
-		/* ----------------------------------- End ---------------------------------- */
+		
+		clientConfig := initClient(kexCurveID, intCACert, intCAPriv, rootCertHybrid.Leaf)
 
 		// Select here the algorithm to be used in the KEX
 		clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}

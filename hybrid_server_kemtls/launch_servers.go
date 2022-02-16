@@ -36,12 +36,10 @@ func launchKEMTLSServer() {
 
 	keys := sortAlgorithmsMap()
 
-	/* -------------------------------- Modified -------------------------------- */
-	//rootCertP256 := new(tls.Certificate)
 	rootCertHybrid := new(tls.Certificate)
 	var err error
 
-	*rootCertHybrid, err = tls.X509KeyPair([]byte(rootCertPEMED25519Dilithim3), []byte(rootKeyPEMED25519Dilithium3))
+	*rootCertHybrid, err = tls.X509KeyPair([]byte(rootCert), []byte(rootKey))
 	if err != nil {
 		panic(err)
 	}
@@ -51,8 +49,8 @@ func launchKEMTLSServer() {
 		panic(err)
 	}
 
+	// Creating intermediate CA to sign the Server Certificate
 	intCACert, intCAPriv := initCAs(rootCertHybrid.Leaf, rootCertHybrid.PrivateKey)
-	/* ----------------------------------- End ---------------------------------- */
 
 	//for each algo
 	for _, k := range keys {
@@ -68,10 +66,7 @@ func launchKEMTLSServer() {
 		}*/
 		authCurveID := kexCurveID
 
-		
-		/* -------------------------------- Modified -------------------------------- */		
-		serverConfig := initServer(authCurveID, intCACert, intCAPriv)
-		/* ----------------------------------- End ---------------------------------- */
+		serverConfig := initServer(authCurveID, intCACert, intCAPriv, rootCertHybrid.Leaf)
 		
 		// Select here the algorithm to be used in the KEX
 		serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
