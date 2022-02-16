@@ -38,11 +38,10 @@ func nameToCurveID(name string) (tls.CurveID, error) {
 	return curveID, nil
 }
 
-func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string) ([]byte, interface{}, error) {
+func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string, keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage) ([]byte, interface{}, error) {
 
-	var _validFor time.Duration = 86400000000000  // JP: TODO:
+	var _validFor time.Duration = 86400000000000
 	var _host string = "127.0.0.1"	
-	var keyUsage x509.KeyUsage
 	var commonName string
 	
 	var pub, priv interface{}
@@ -53,8 +52,9 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	if isCA {
 		if isSelfSigned {
 			commonName = "Root CA"
-		}
-		commonName = "Intermediate CA"		
+		} else {
+			commonName = "Intermediate CA"		
+		}		
 	} else {		
 		commonName = peer		
 	}
@@ -66,17 +66,13 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		if err != nil {
 			return nil, nil, err
 		}
-
-		keyUsage = x509.KeyUsageKeyEncipherment // or |=
 	
-		} else if scheme, ok := pubkeyAlgo.(sign.Scheme); ok {
+	} else if scheme, ok := pubkeyAlgo.(sign.Scheme); ok {
 		pub, priv, err = scheme.GenerateKey()
 
 		if err != nil {
 			log.Fatalf("Failed to generate private key: %v", err)
 		}
-		
-		keyUsage = x509.KeyUsageDigitalSignature
 	}
 	
 	notBefore := time.Now()
@@ -101,7 +97,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 			NotAfter:  notAfter,
 
 			KeyUsage:              keyUsage,
-			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+			ExtKeyUsage:           extKeyUsage,
 			BasicConstraintsValid: true,
 		}
 
@@ -116,7 +112,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 			NotAfter:  notAfter,
 
 			KeyUsage:              keyUsage,
-			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+			ExtKeyUsage:           extKeyUsage,
 			BasicConstraintsValid: true,
 		}
 	}
@@ -148,7 +144,11 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	return certDERBytes, priv, nil
 }
 
-func initCAs() (*x509.Certificate, *x509.Certificate, interface{}){
+func initCAs() (*x509.Certificate, *x509.Certificate, interface{}){	
+
+	rootKeyUsage := x509.KeyUsageCertSign
+	intKeyUsage := x509.KeyUsageCertSign
+
 	/* ---------------------------- Root Certificate ---------------------------- */
 
 	rootCAScheme := circlSchemes.ByName("Ed448-Dilithium4")  // or Ed25519-Dilithium3
@@ -156,7 +156,7 @@ func initCAs() (*x509.Certificate, *x509.Certificate, interface{}){
 		log.Fatalf("No such Circl scheme: %s", rootCAScheme)
 	}
 
-	rootCACertBytes, rootCAPriv, err := createCertificate(rootCAScheme, nil, nil, true, true, "server")
+	rootCACertBytes, rootCAPriv, err := createCertificate(rootCAScheme, nil, nil, true, true, "server", rootKeyUsage, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -173,7 +173,7 @@ func initCAs() (*x509.Certificate, *x509.Certificate, interface{}){
 		log.Fatalf("No such Circl scheme: %s", intCAScheme)
 	}
 
-	intCACertBytes, intCAPriv, err := createCertificate(intCAScheme, rootCACert, rootCAPriv, true, false, "server")
+	intCACertBytes, intCAPriv, err := createCertificate(intCAScheme, rootCACert, rootCAPriv, true, false, "server", intKeyUsage, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -191,8 +191,13 @@ func initCAs() (*x509.Certificate, *x509.Certificate, interface{}){
 func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
 	hybridCert := new(tls.Certificate)
 	var err error
+	
+	serverKeyUsage := x509.KeyUsageKeyAgreement
+	// serverKeyUsage := x509.KeyUsageDigitalSignature // for PQTLS
 
-	certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false, "server")
+	serverExtKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
+
+	certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false, "server", serverKeyUsage, serverExtKeyUsage)
 	if err != nil {
 		panic(err)
 	}
@@ -231,11 +236,15 @@ func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv inte
 }
 
 func initClient(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
-	
 	hybridCert := new(tls.Certificate)
 	var err error
 
-	certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false, "client")
+	clientKeyUsage := x509.KeyUsageKeyAgreement
+	// serverKeyUsage := x509.KeyUsageDigitalSignature // for PQTLS
+
+	clientExtKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false, "client", clientKeyUsage, clientExtKeyUsage)
 	if err != nil {
 		panic(err)
 	}
