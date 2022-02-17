@@ -31,6 +31,7 @@ var (
 	clientAuth = flag.Bool("clientauth", false, "Client authentication")
 	
 	pqtls = flag.Bool("pqtls", false, "PQTLS")
+	hybridRoot = flag.Bool("hybridroot", true, "Root CA with hybrid algorithm")
 )
 
 var (
@@ -382,34 +383,17 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 
 	var certTemplate x509.Certificate
 
-	if peer == "client" {
-		certTemplate = x509.Certificate{
-			SerialNumber: serialNumber,
-			Subject: pkix.Name{
-				CommonName: commonName,
-			},
-			NotBefore: notBefore,
-			NotAfter:  notAfter,
+	certTemplate = x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			CommonName: commonName,
+		},
+		NotBefore: notBefore,
+		NotAfter:  notAfter,
 
-			KeyUsage:              keyUsage,
-			ExtKeyUsage:           extKeyUsage,
-			BasicConstraintsValid: true,
-		}
-
-	} else {	
-
-		certTemplate = x509.Certificate{
-			SerialNumber: serialNumber,
-			Subject: pkix.Name{
-				CommonName: commonName,
-			},
-			NotBefore: notBefore,
-			NotAfter:  notAfter,
-
-			KeyUsage:              keyUsage,
-			ExtKeyUsage:           extKeyUsage,
-			BasicConstraintsValid: true,
-		}
+		KeyUsage:              keyUsage,
+		ExtKeyUsage:           extKeyUsage,
+		BasicConstraintsValid: true,
 	}
 
 	hosts := strings.Split(_host, ",")

@@ -1,5 +1,12 @@
 package main
 
+// Run with:
+// go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go client_stats_kemtls.go plot_functions.go -ip 127.0.0.1 -tlspeer client -handshakes 10
+
+// Optionals:
+// plot_functions.go
+
+
 import (
 	"crypto/kem"
 	"crypto/tls"
@@ -20,26 +27,34 @@ func main() {
 
 	clientMsg := "hello, server"
 
-	port := 4433
+	port := 4433	
 
-	rootCertHybrid := new(tls.Certificate)
-	var err error
+	var rootCertX509 *x509.Certificate
+	var rootPriv interface{}
 
-	*rootCertHybrid, err = tls.X509KeyPair([]byte(rootCert), []byte(rootKey))
-	if err != nil {
-		panic(err)
+	if *hybridRoot {
+		rootCertX509, rootPriv = constructHybridRoot()
+	
+	} else {
+		tempRootCertTLS, err := tls.X509KeyPair([]byte(rootCert), []byte(rootKey))
+		if err != nil {
+			panic(err)
+		}
+
+		rootCertX509, err = x509.ParseCertificate(tempRootCertTLS.Certificate[0])
+		if err != nil {
+			panic(err)
+		}
+
+		rootPriv = tempRootCertTLS.PrivateKey
 	}
 
-	rootCertHybrid.Leaf, err = x509.ParseCertificate(rootCertHybrid.Certificate[0])
-	if err != nil {
-		panic(err)
-	}
 
 	if *clientAuth {
 		intSigAlgo := nameToHybridSigID(*intCAAlgo)
 		
 		// Creating intermediate CA to sign the Client Certificate
-		intCACert, intCAPriv = initCAs(rootCertHybrid.Leaf, rootCertHybrid.PrivateKey, intSigAlgo)
+		intCACert, intCAPriv = initCAs(rootCertX509, rootPriv, intSigAlgo)
 	}
 
 	//struct for the metrics
@@ -78,7 +93,7 @@ func main() {
 			log.Fatal(err)
 		}
 		
-		clientConfig := initClient(kexCurveID, intCACert, intCAPriv, rootCertHybrid.Leaf)
+		clientConfig := initClient(kexCurveID, intCACert, intCAPriv, rootCertX509)
 
 		// Select here the algorithm to be used in the KEX
 		clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
@@ -145,7 +160,7 @@ func main() {
 
 				authSig := nameToHybridSigID(kAuth)
 			
-				clientConfig := initClient(authSig, intCACert, intCAPriv, rootCertHybrid.Leaf)
+				clientConfig := initClient(authSig, intCACert, intCAPriv, rootCertX509)
 
 				// Select here the algorithm to be used in the KEX
 				clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}

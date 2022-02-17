@@ -1,14 +1,15 @@
 package main
 
-//run with /.../go-kemtls/bin/go run launch_servers.go hybrid_server_kemtls.go
+// Command to run:
+// go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go 
 
 import (
-	"crypto/tls"
+	"crypto/tls"	
+	"crypto/x509"	
 	"flag"
 	"fmt"
 	"log"
 	"sync"
-	"crypto/x509"
 )
 
 var wg sync.WaitGroup
@@ -27,24 +28,33 @@ func launchServer() {
 	port := 4433
 
 	keysKEX, keysAuth := sortAlgorithmsMap()
+	
+	var rootCertX509 *x509.Certificate
+	var rootPriv interface{}
 
-	rootCertHybrid := new(tls.Certificate)
-	var err error
+	if *hybridRoot {
+		rootCertX509, rootPriv = constructHybridRoot()
+	
+	} else {
 
-	*rootCertHybrid, err = tls.X509KeyPair([]byte(rootCert), []byte(rootKey))
-	if err != nil {
-		panic(err)
+		tempRootCertTLS, err := tls.X509KeyPair([]byte(rootCert), []byte(rootKey))
+		if err != nil {
+			panic(err)
+		}
+
+		rootCertX509, err = x509.ParseCertificate(tempRootCertTLS.Certificate[0])
+		if err != nil {
+			panic(err)
+		}
+
+		rootPriv = tempRootCertTLS.PrivateKey
 	}
 
-	rootCertHybrid.Leaf, err = x509.ParseCertificate(rootCertHybrid.Certificate[0])
-	if err != nil {
-		panic(err)
-	}
-
+	
 	intSigAlgo := nameToHybridSigID(*intCAAlgo)
 
 	// Creating intermediate CA to sign the Server Certificate
-	intCACert, intCAPriv := initCAs(rootCertHybrid.Leaf, rootCertHybrid.PrivateKey, intSigAlgo)
+	intCACert, intCAPriv := initCAs(rootCertX509, rootPriv, intSigAlgo)
 
 	if !*pqtls {
 		//for each algo
@@ -64,7 +74,7 @@ func launchServer() {
 
 			authCurveID := kexCurveID
 
-			serverConfig := initServer(authCurveID, intCACert, intCAPriv, rootCertHybrid.Leaf)
+			serverConfig := initServer(authCurveID, intCACert, intCAPriv, rootCertX509)
 			
 			// Select here the algorithm to be used in the KEX
 			serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
@@ -92,7 +102,7 @@ func launchServer() {
 				
 				authSigID := nameToHybridSigID(kAuth)
 
-				serverConfig := initServer(authSigID, intCACert, intCAPriv, rootCertHybrid.Leaf)
+				serverConfig := initServer(authSigID, intCACert, intCAPriv, rootCertX509)
 			
 				// Select here the algorithm to be used in the KEX
 				serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
