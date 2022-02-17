@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"time"	
 	"gonum.org/v1/plot/plotter"
-	stats	"tls_tests/hybrid_server_kemtls/statspqtls"
 )
 
 func main() {
@@ -44,10 +43,10 @@ func main() {
 	}
 
 	//struct for the metrics
-	var algoResults stats.ClientResultsInfo
+	var algoResults ClientResultsInfo
 
 	//list of structs
-	var algoResultsList []stats.ClientResultsInfo
+	var algoResultsList []ClientResultsInfo
 
 	var re *regexp.Regexp
 	
@@ -62,7 +61,7 @@ func main() {
 	var kexNames []string
 
 	//prepare output file
-	stats.InitCSV()
+	initCSV()
 
 	keysKEX, keysAuth := sortAlgorithmsMap()
 
@@ -105,11 +104,11 @@ func main() {
 		}
 
 		//save results first
-		stats.SaveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes)
+		saveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes)
 
-		algoResults = stats.ComputeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
-		algoResults.KexName = k
-		algoResults.AuthName = k
+		algoResults = computeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
+		algoResults.kexName = k
+		algoResults.authName = k
 
 		algoResultsList = append(algoResultsList, algoResults)
 
@@ -123,7 +122,7 @@ func main() {
 	}
 		
 	//export results
-	stats.ResultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
+	resultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
 	fmt.Println("End of test.")
 	
 	} else {
@@ -171,11 +170,11 @@ func main() {
 				}
 
 				//save results first
-				stats.SaveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, nil, k, *handshakes)
+				saveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, nil, k, *handshakes)
 
-				algoResults = stats.ComputeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, nil, *handshakes)
-				algoResults.KexName = k
-				algoResults.AuthName = k
+				algoResults = computeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, nil, *handshakes)
+				algoResults.kexName = k
+				algoResults.authName = k
 
 				algoResultsList = append(algoResultsList, algoResults)
 

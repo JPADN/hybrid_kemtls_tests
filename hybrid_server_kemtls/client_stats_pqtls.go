@@ -1,4 +1,4 @@
-package statspqtls
+package main
 
 import (
 	"encoding/csv"
@@ -11,18 +11,18 @@ import (
 )
 
 type ClientResultsInfo struct {
-	KexName                 string
-	AuthName                string
-	AvgTotalTime            float64
-	AvgProcessServerHello   float64
-	AvgWriteClientHello     float64
-	StdevTotalTime          float64
-	StdevProcessServerHello float64
-	StdevWriteClientHello   float64
+	kexName                 string
+	authName                string
+	avgTotalTime            float64
+	avgProcessServerHello   float64
+	avgWriteClientHello     float64
+	stdevTotalTime          float64
+	stdevProcessServerHello float64
+	stdevWriteClientHello   float64
 }
 
 //Stats: Avg, Stdev.
-func ComputeStats(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, dummy []float64, hs int) (r ClientResultsInfo) {
+func computeStats(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, dummy []float64, hs int) (r ClientResultsInfo) {
 
 	//counts
 	var countTotalTime float64
@@ -37,19 +37,19 @@ func ComputeStats(timingsFullProtocol []float64, timingsProcessServerHello []flo
 		countWriteClientHello += timingsWriteClientHello[i]
 	}
 
-	r.AvgTotalTime = (countTotalTime) / float64(hs)
-	r.AvgProcessServerHello = (countProcessServerHello) / float64(hs)
-	r.AvgWriteClientHello = (countWriteClientHello) / float64(hs)
+	r.avgTotalTime = (countTotalTime) / float64(hs)
+	r.avgProcessServerHello = (countProcessServerHello) / float64(hs)
+	r.avgWriteClientHello = (countWriteClientHello) / float64(hs)
 
 	//stdev
 	for i := 0; i < hs; i++ {
-		r.StdevTotalTime += math.Pow(float64(timingsFullProtocol[i])-r.AvgTotalTime, 2)
-		r.StdevProcessServerHello += math.Pow(float64(timingsProcessServerHello[i])-r.AvgProcessServerHello, 2)
-		r.StdevWriteClientHello += math.Pow(float64(timingsWriteClientHello[i])-r.AvgWriteClientHello, 2)
+		r.stdevTotalTime += math.Pow(float64(timingsFullProtocol[i])-r.avgTotalTime, 2)
+		r.stdevProcessServerHello += math.Pow(float64(timingsProcessServerHello[i])-r.avgProcessServerHello, 2)
+		r.stdevWriteClientHello += math.Pow(float64(timingsWriteClientHello[i])-r.avgWriteClientHello, 2)
 	}
-	r.StdevTotalTime = math.Sqrt(r.StdevTotalTime / float64(hs))
-	r.StdevProcessServerHello = math.Sqrt(r.StdevProcessServerHello / float64(hs))
-	r.StdevWriteClientHello = math.Sqrt(r.StdevWriteClientHello / float64(hs))
+	r.stdevTotalTime = math.Sqrt(r.stdevTotalTime / float64(hs))
+	r.stdevProcessServerHello = math.Sqrt(r.stdevProcessServerHello / float64(hs))
+	r.stdevWriteClientHello = math.Sqrt(r.stdevWriteClientHello / float64(hs))
 
 	return r
 }
@@ -68,18 +68,18 @@ func printStatistics(results []ClientResultsInfo) {
 	for _, r := range results {
 		//content
 		fmt.Println()
-		fmt.Printf("%-23s |", r.KexName)
+		fmt.Printf("%-23s |", r.kexName)
 
-		fmt.Printf(" %-20f |", r.AvgTotalTime)
-		fmt.Printf(" %-20f |", r.StdevTotalTime)
-		fmt.Printf(" %-20f |", r.AvgWriteClientHello)
-		fmt.Printf(" %-20f |", r.StdevWriteClientHello)
-		fmt.Printf(" %-20f |", r.AvgProcessServerHello)
-		fmt.Printf(" %-20f |", r.StdevProcessServerHello)
+		fmt.Printf(" %-20f |", r.avgTotalTime)
+		fmt.Printf(" %-20f |", r.stdevTotalTime)
+		fmt.Printf(" %-20f |", r.avgWriteClientHello)
+		fmt.Printf(" %-20f |", r.stdevWriteClientHello)
+		fmt.Printf(" %-20f |", r.avgProcessServerHello)
+		fmt.Printf(" %-20f |", r.stdevProcessServerHello)
 	}
 }
 
-func InitCSV() {
+func initCSV() {
 	csvFile, err := os.Create("pqtls-client.csv")
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
@@ -93,7 +93,7 @@ func InitCSV() {
 	csvFile.Close()
 }
 
-func SaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, dummy []float64, name string, hs int) {
+func saveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, dummy []float64, name string, hs int) {
 	csvFile, err := os.OpenFile("pqtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
@@ -115,7 +115,7 @@ func SaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64,
 	csvFile.Close()
 }
 
-func ResultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
+func resultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
 	printStatistics(results)
 	//printHybridPenalty(results)
 	/*	genbar(results, "Avg Completion Time - Client (ms)")
@@ -123,5 +123,5 @@ func ResultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values
 		genbar(results, "Avg Process Server Hello - Client (ms)")
 		boxplot(names, boxPlotValues, hs)
 		barMarkLines(results, "All")
-			barMarkLines(results, "L1")*/
+		barMarkLines(results, "L1")*/
 }
