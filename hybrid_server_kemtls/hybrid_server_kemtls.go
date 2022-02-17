@@ -14,37 +14,53 @@ import (
 	"log"
 	"math/big"
 	"net"
-	"sort"
 	"strings"
 	"time"
+	"crypto/liboqs_sig"
 )
 
 var (
 	kexAlgo    = flag.String("kex", "Kyber512X25519", "KEX Algorithm")
 	authAlgo   = flag.String("auth", "Kyber512X25519", "Authentication Algorithm")
+	intCAAlgo  = flag.String("intca", "P256_Dilithium2", "Intermediate CA Signature Algorithm")
+	
 	IPserver   = flag.String("ip", "127.0.0.1", "IP of the KEMTLS Server")
 	tlspeer    = flag.String("tlspeer", "server", "KEMTLS Peer: client or server")
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
+	
 	clientAuth = flag.Bool("clientauth", false, "Client authentication")
+	
+	pqtls = flag.Bool("pqtls", false, "PQTLS")
 )
 
-// The Root CA certificate and key were generated with the following program, available in the
-// crypto/tls directory:
-//
-//	go run generate_cert.go -ecdsa-curve P256 -host 127.0.0.1 -ca true
+var (
 
-/*var rootCertPEMP256 = `-----BEGIN CERTIFICATE-----
-MIIBijCCATGgAwIBAgIRALM63nKUutZeH12Fk/5tChgwCgYIKoZIzj0EAwIwEjEQ
-MA4GA1UEChMHQWNtZSBDbzAeFw0yMTA0MTkxMTAyMzhaFw0yMjA0MTkxMTAyMzha
-MBIxEDAOBgNVBAoTB0FjbWUgQ28wWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAR4
-n0U8wpgVD81/HGgNbUW/8ZoLUT1nSUvZpntvzZ9nCLFWjf6X/zOO+Zpw9ci+Ob/H
-Db8ikQZ9GR1L8GStT7fjo2gwZjAOBgNVHQ8BAf8EBAMCAoQwEwYDVR0lBAwwCgYI
-KwYBBQUHAwEwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQU3bt5t8hhnxTne+C/
-lqWvK7ytdMAwDwYDVR0RBAgwBocEfwAAATAKBggqhkjOPQQDAgNHADBEAiAmR2b0
-Zf/yqBQWNjcb5BkEMXXB+HUYbUXWal0cQf8tswIgIN5sngQOABJiFfoJo6PCB2+V
-Uf8DiE3gx/2Z4bZugww=
------END CERTIFICATE-----
-`*/
+	// CIRCL
+	// hsAlgorithms = map[string]tls.CurveID{"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
+	// 	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
+
+	// Liboqs
+	hsKEXAlgorithms = map[string]tls.CurveID{
+		"Kyber512": tls.OQS_Kyber512, "P256_Kyber512": tls.P256_Kyber512,
+		"Kyber768": tls.OQS_Kyber768, "P384_Kyber768": tls.P384_Kyber768,
+		"Kyber1024": tls.OQS_Kyber1024, "P521_Kyber1024": tls.P521_Kyber1024,
+		"LightSaber_KEM": tls.LightSaber_KEM, "P256_LightSaber_KEM": tls.P256_LightSaber_KEM,
+		"Saber_KEM": tls.Saber_KEM, "P384_Saber_KEM": tls.P384_Saber_KEM,
+		"FireSaber_KEM": tls.FireSaber_KEM, "P521_FireSaber_KEM": tls.P521_FireSaber_KEM,
+		"NTRU_HPS_2048_509": tls.NTRU_HPS_2048_509, "P256_NTRU_HPS_2048_509": tls.P256_NTRU_HPS_2048_509,
+		"NTRU_HPS_2048_677": tls.NTRU_HPS_2048_677, "P384_NTRU_HPS_2048_677": tls.P384_NTRU_HPS_2048_677,
+		"NTRU_HPS_4096_821": tls.NTRU_HPS_4096_821, "P521_NTRU_HPS_4096_821": tls.P521_NTRU_HPS_4096_821,
+		"NTRU_HPS_4096_1229": tls.NTRU_HPS_4096_1229, "P521_NTRU_HPS_4096_1229": tls.P521_NTRU_HPS_4096_1229,
+		"NTRU_HRSS_701": tls.NTRU_HRSS_701, "P384_NTRU_HRSS_701": tls.P384_NTRU_HRSS_701,
+		"NTRU_HRSS_1373": tls.NTRU_HRSS_1373, "P521_NTRU_HRSS_1373": tls.P521_NTRU_HRSS_1373,
+	}
+
+	hsHybridAuthAlgorithms = map[string]liboqs_sig.ID {
+		"P256_Dilithium2": liboqs_sig.P256_Dilithium2, "P256_Falcon512": liboqs_sig.P256_Falcon512, "P256_RainbowIClassic": liboqs_sig.P256_RainbowIClassic, 
+		"P384_Dilithium3": liboqs_sig.P384_Dilithium3, "P384_RainbowIIIClassic": liboqs_sig.P384_RainbowIIIClassic, 
+		"P521_Dilithium5": liboqs_sig.P521_Dilithium5, "P521_Falcon1024": liboqs_sig.P521_Falcon1024, "P521_RainbowVClassic": liboqs_sig.P521_RainbowVClassic,
+	}
+)
 
 var rootCert = `-----BEGIN CERTIFICATE-----
 MIIVoTCCB/KgAwIBAgIQT6O+UIX8AkPzBZB7qedo6zAMBgorBgEEAYLaSy0KMBIx
@@ -166,13 +182,6 @@ Z9w8PiSMZVRhH+OnQNhhtG3Rsh0A
 -----END CERTIFICATE-----
 `
 
-/*var rootKeyPEMP256 = `-----BEGIN EC PRIVATE KEY-----
-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQggzl0gcTDyAi7edv5
-1aPR0dlDog4XCJdftcdPCjI1xpmhRANCAAR4n0U8wpgVD81/HGgNbUW/8ZoLUT1n
-SUvZpntvzZ9nCLFWjf6X/zOO+Zpw9ci+Ob/HDb8ikQZ9GR1L8GStT7fj
------END EC PRIVATE KEY-----
-`*/
-
 var rootKey = `-----BEGIN PRIVATE KEY-----
 MIIPYgIBADAMBgorBgEEAYLaSy0KBIIPTQSCD0ngOwT/raaToLEmJcK7dK3pLsuR
 NFKGa2e7JLVMg21q9iYquDgF92FsKI3zxbqKFX3ipRJc3rF9QbdV0pgpzjPkARXv
@@ -260,37 +269,19 @@ dY3NFBWu
 -----END PRIVATE KEY-----
 `
 
-//CIRCL
-//var hsAlgorithms = map[string]tls.CurveID{"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
-//	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
-
-//LIBOQS
-var hsAlgorithms = map[string]tls.CurveID{
-	"Kyber512": tls.OQS_Kyber512, "P256_Kyber512": tls.P256_Kyber512,
-	"Kyber768": tls.OQS_Kyber768, "P384_Kyber768": tls.P384_Kyber768,
-	"Kyber1024": tls.OQS_Kyber1024, "P521_Kyber1024": tls.P521_Kyber1024,
-	"LightSaber_KEM": tls.LightSaber_KEM, "P256_LightSaber_KEM": tls.P256_LightSaber_KEM,
-	"Saber_KEM": tls.Saber_KEM, "P384_Saber_KEM": tls.P384_Saber_KEM,
-	"FireSaber_KEM": tls.FireSaber_KEM, "P521_FireSaber_KEM": tls.P521_FireSaber_KEM,
-	"NTRU_HPS_2048_509": tls.NTRU_HPS_2048_509, "P256_NTRU_HPS_2048_509": tls.P256_NTRU_HPS_2048_509,
-	"NTRU_HPS_2048_677": tls.NTRU_HPS_2048_677, "P384_NTRU_HPS_2048_677": tls.P384_NTRU_HPS_2048_677,
-	"NTRU_HPS_4096_821": tls.NTRU_HPS_4096_821, "P521_NTRU_HPS_4096_821": tls.P521_NTRU_HPS_4096_821,
-	"NTRU_HPS_4096_1229": tls.NTRU_HPS_4096_1229, "P521_NTRU_HPS_4096_1229": tls.P521_NTRU_HPS_4096_1229,
-	"NTRU_HRSS_701": tls.NTRU_HRSS_701, "P384_NTRU_HRSS_701": tls.P384_NTRU_HRSS_701,
-	"NTRU_HRSS_1373": tls.NTRU_HRSS_1373, "P521_NTRU_HRSS_1373": tls.P521_NTRU_HRSS_1373,
-}
-
 //sort and returns sorted keys
-func sortAlgorithmsMap() (keys []string) {
-	//sort the map of algorithms
-	output := make([]string, 0, len(hsAlgorithms))
-	for k, _ := range hsAlgorithms {
-		output = append(output, k)
-	}
-	sort.Strings(output)
+func sortAlgorithmsMap() (KEXkeys []string, Authkeys []string) {
+	// // sort the map of algorithms
+	// output := make([]string, 0, len(hsKEXAlgorithms))
+	// for k, _ := range hsKEXAlgorithms {
+	// 	output = append(output, k)
+	// }
+	// sort.Strings(output)
 
-	//or return a specific ordering (PQC-only then hybrid interleaved together)
-	output2 := []string{"Kyber512", "P256_Kyber512", "Kyber768", "P384_Kyber768",
+	// or return a specific ordering (PQC-only then hybrid interleaved together)
+	
+	outputKEX := []string{
+		"Kyber512", "P256_Kyber512", "Kyber768", "P384_Kyber768",
 		"Kyber1024", "P521_Kyber1024", "LightSaber_KEM", "P256_LightSaber_KEM",
 		"Saber_KEM", "P384_Saber_KEM", "FireSaber_KEM", "P521_FireSaber_KEM",
 		"NTRU_HPS_2048_509", "P256_NTRU_HPS_2048_509",
@@ -300,19 +291,39 @@ func sortAlgorithmsMap() (keys []string) {
 		"NTRU_HRSS_701", "P384_NTRU_HRSS_701", "NTRU_HRSS_1373", "P521_NTRU_HRSS_1373",
 	}
 
-	return output2
+	outputAuth := []string{
+		"P256_Dilithium2", "P256_Falcon512", "P256_RainbowIClassic",
+		"P384_Dilithium3", "P384_RainbowIIIClassic",
+		"P521_Dilithium5", "P521_Falcon1024", "P521_RainbowVClassic",
+	}
+
+	return outputKEX, outputAuth
 }
 
 func nameToCurveID(name string) (tls.CurveID, error) {
-	curveID, prs := hsAlgorithms[name]
+	curveID, prs := hsKEXAlgorithms[name]
 	if !prs {
 		fmt.Println("Algorithm not found. Available algorithms: ")
-		for name, _ := range hsAlgorithms {
+		for name, _ := range hsKEXAlgorithms {
 			fmt.Println(name)
 		}
 		return 0, errors.New("ERROR: Algorithm not found")
 	}
 	return curveID, nil
+}
+
+func nameToHybridSigID(name string) (interface {}) {
+	sigId, prs := hsHybridAuthAlgorithms[name]
+	if prs {	
+		return sigId
+	}
+
+	intCAScheme := circlSchemes.ByName(name) // or Ed25519-Dilithium3
+	if intCAScheme != nil {
+		return intCAScheme
+	}
+
+	panic("Algorithm not found")
 }
 
 func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string, keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage) ([]byte, interface{}, error) {
@@ -336,7 +347,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		commonName = peer		
 	}
 
-	if curveID, ok := pubkeyAlgo.(tls.CurveID); ok {
+	if curveID, ok := pubkeyAlgo.(tls.CurveID); ok {  // Hybrid KEMTLS
 		kemID := kem.ID(curveID)
 
 		pub, priv, err = kem.GenerateKey(rand.Reader, kemID)
@@ -344,13 +355,20 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 			return nil, nil, err
 		}
 	
-	} else if scheme, ok := pubkeyAlgo.(sign.Scheme); ok {
+	} else if scheme, ok := pubkeyAlgo.(sign.Scheme); ok {  // CIRCL Signature
 		pub, priv, err = scheme.GenerateKey()
 
 		if err != nil {
 			log.Fatalf("Failed to generate private key: %v", err)
 		}
+	} else if scheme, ok := pubkeyAlgo.(liboqs_sig.ID); ok {  // Liboqs Hybrid Signature
+		pub, priv, err = liboqs_sig.GenerateKey(scheme)
+
+		if err != nil {
+			log.Fatalf("Failed to generate private key: %v", err)
+		}
 	}
+
 	
 	notBefore := time.Now()
 
@@ -421,18 +439,11 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	return certDERBytes, priv, nil
 }
 
-func initCAs(rootCACert *x509.Certificate, rootCAPriv interface{}) (*x509.Certificate, interface{}) {
+func initCAs(rootCACert *x509.Certificate, rootCAPriv, intCAAlgo interface{},) (*x509.Certificate, interface{}) {
 
 	intKeyUsage := x509.KeyUsageCertSign
 
-	/* ----------------------------- Intermediate CA ---------------------------- */
-
-	intCAScheme := circlSchemes.ByName("Ed25519-Dilithium3") // or Ed25519-Dilithium3
-	if intCAScheme == nil {
-		log.Fatalf("No such Circl scheme: %s", intCAScheme)
-	}
-
-	intCACertBytes, intCAPriv, err := createCertificate(intCAScheme, rootCACert, rootCAPriv, true, false,  "server", intKeyUsage, nil)
+	intCACertBytes, intCAPriv, err := createCertificate(intCAAlgo, rootCACert, rootCAPriv, true, false,  "server", intKeyUsage, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -445,37 +456,33 @@ func initCAs(rootCACert *x509.Certificate, rootCAPriv interface{}) (*x509.Certif
 	return intCACert, intCAPriv
 }
 
-func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {	
+func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {	
 	var err error
 	var cfg *tls.Config
-	
-	if *clientAuth {
-		cfg = &tls.Config{
-			MinVersion:    tls.VersionTLS10,
-			MaxVersion:    tls.VersionTLS13,
-			InsecureSkipVerify:         false,
-			SupportDelegatedCredential: false,
-			ClientAuth:                 tls.RequireAndVerifyClientCert,
+	var serverKeyUsage x509.KeyUsage
 
-			KEMTLSEnabled: true,
-		}
+	cfg = &tls.Config{
+		MinVersion:    tls.VersionTLS10,
+		MaxVersion:    tls.VersionTLS13,
+		InsecureSkipVerify:         false,
+		SupportDelegatedCredential: false,
+	}
+
+	if *pqtls {
+		cfg.PQTLSEnabled = true
+		serverKeyUsage = x509.KeyUsageDigitalSignature
 	} else {
-		cfg = &tls.Config{
-			MinVersion:    tls.VersionTLS10,
-			MaxVersion:    tls.VersionTLS13,
-			InsecureSkipVerify:         false,
-			SupportDelegatedCredential: false,
+		cfg.KEMTLSEnabled = true
+		serverKeyUsage = x509.KeyUsageKeyAgreement
+	}
 
-			KEMTLSEnabled: true,
-		}
+	if *clientAuth {
+		cfg.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 	
-	serverKeyUsage := x509.KeyUsageKeyAgreement
-	// serverKeyUsage := x509.KeyUsageDigitalSignature // for PQTLS
-
 	serverExtKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 
-	certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false, "server", serverKeyUsage, serverExtKeyUsage)
+	certBytes, certPriv, err := createCertificate(certAlgo, intCACert, intCAPriv, false, false, "server", serverKeyUsage, serverExtKeyUsage)
 	if err != nil {
 		panic(err)
 	}
@@ -484,7 +491,6 @@ func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv inte
 
 	hybridCert.Certificate = append(hybridCert.Certificate, certBytes)
 	hybridCert.PrivateKey = certPriv
-	// hybridCert.SupportedSignatureAlgorithms = []tls.SignatureScheme{tls.Ed25519}
 
 	hybridCert.Leaf, err = x509.ParseCertificate(hybridCert.Certificate[0])
 	if err != nil {
@@ -504,15 +510,22 @@ func initServer(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv inte
 	return cfg
 }
 
-func initClient(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
+func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
+	var clientKeyUsage x509.KeyUsage
 
 	ccfg := &tls.Config{
 		MinVersion:                 tls.VersionTLS10,
 		MaxVersion:                 tls.VersionTLS13,
 		InsecureSkipVerify:         false,
 		SupportDelegatedCredential: false,
+	}
 
-		KEMTLSEnabled: true,
+	if *pqtls {
+		ccfg.PQTLSEnabled = true
+		clientKeyUsage = x509.KeyUsageDigitalSignature
+	} else {
+		ccfg.KEMTLSEnabled = true
+		clientKeyUsage = x509.KeyUsageKeyAgreement
 	}
 
 	if *clientAuth {
@@ -520,12 +533,9 @@ func initClient(curveID tls.CurveID, intCACert *x509.Certificate, intCAPriv inte
 		hybridCert := new(tls.Certificate)
 		var err error
 
-		clientKeyUsage := x509.KeyUsageKeyAgreement
-		// serverKeyUsage := x509.KeyUsageDigitalSignature // for PQTLS
-
 		clientExtKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
 
-		certBytes, certPriv, err := createCertificate(curveID, intCACert, intCAPriv, false, false, "client", clientKeyUsage, clientExtKeyUsage)
+		certBytes, certPriv, err := createCertificate(certAlgo, intCACert, intCAPriv, false, false, "client", clientKeyUsage, clientExtKeyUsage)
 		if err != nil {
 			panic(err)
 		}
