@@ -4,6 +4,7 @@ import (
 	"circl/sign"
 	circlSchemes "circl/sign/schemes"
 	"crypto/kem"
+	"crypto/liboqs_sig"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
@@ -16,21 +17,20 @@ import (
 	"net"
 	"strings"
 	"time"
-	"crypto/liboqs_sig"
 )
 
 var (
-	kexAlgo    = flag.String("kex", "Kyber512X25519", "KEX Algorithm")
-	authAlgo   = flag.String("auth", "Kyber512X25519", "Authentication Algorithm")
-	intCAAlgo  = flag.String("intca", "P256_Dilithium2", "Intermediate CA Signature Algorithm")
-	
+	kexAlgo   = flag.String("kex", "Kyber512X25519", "KEX Algorithm")
+	authAlgo  = flag.String("auth", "Kyber512X25519", "Authentication Algorithm")
+	intCAAlgo = flag.String("intca", "P256_Dilithium2", "Intermediate CA Signature Algorithm")
+
 	IPserver   = flag.String("ip", "127.0.0.1", "IP of the KEMTLS Server")
 	tlspeer    = flag.String("tlspeer", "server", "KEMTLS Peer: client or server")
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
-	
+
 	clientAuth = flag.Bool("clientauth", false, "Client authentication")
-	
-	pqtls = flag.Bool("pqtls", false, "PQTLS")
+
+	pqtls      = flag.Bool("pqtls", false, "PQTLS")
 	hybridRoot = flag.Bool("hybridroot", true, "Root CA with hybrid algorithm")
 )
 
@@ -56,9 +56,9 @@ var (
 		"NTRU_HRSS_1373": tls.NTRU_HRSS_1373, "P521_NTRU_HRSS_1373": tls.P521_NTRU_HRSS_1373,
 	}
 
-	hsHybridAuthAlgorithms = map[string]liboqs_sig.ID {
-		"P256_Dilithium2": liboqs_sig.P256_Dilithium2, "P256_Falcon512": liboqs_sig.P256_Falcon512, "P256_RainbowIClassic": liboqs_sig.P256_RainbowIClassic, 
-		"P384_Dilithium3": liboqs_sig.P384_Dilithium3, "P384_RainbowIIIClassic": liboqs_sig.P384_RainbowIIIClassic, 
+	hsHybridAuthAlgorithms = map[string]liboqs_sig.ID{
+		"P256_Dilithium2": liboqs_sig.P256_Dilithium2, "P256_Falcon512": liboqs_sig.P256_Falcon512, "P256_RainbowIClassic": liboqs_sig.P256_RainbowIClassic,
+		"P384_Dilithium3": liboqs_sig.P384_Dilithium3, "P384_RainbowIIIClassic": liboqs_sig.P384_RainbowIIIClassic,
 		"P521_Dilithium5": liboqs_sig.P521_Dilithium5, "P521_Falcon1024": liboqs_sig.P521_Falcon1024, "P521_RainbowVClassic": liboqs_sig.P521_RainbowVClassic,
 	}
 )
@@ -280,7 +280,7 @@ func sortAlgorithmsMap() (KEXkeys []string, Authkeys []string) {
 	// sort.Strings(output)
 
 	// or return a specific ordering (PQC-only then hybrid interleaved together)
-	
+
 	outputKEX := []string{
 		"Kyber512", "P256_Kyber512", "Kyber768", "P384_Kyber768",
 		"Kyber1024", "P521_Kyber1024", "LightSaber_KEM", "P256_LightSaber_KEM",
@@ -313,9 +313,9 @@ func nameToCurveID(name string) (tls.CurveID, error) {
 	return curveID, nil
 }
 
-func nameToHybridSigID(name string) (interface {}) {
+func nameToHybridSigID(name string) interface{} {
 	sigId, prs := hsHybridAuthAlgorithms[name]
-	if prs {	
+	if prs {
 		return sigId
 	}
 
@@ -348,9 +348,9 @@ func authIDToName(lID liboqs_sig.ID) (name string, e error) {
 func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string, keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage) ([]byte, interface{}, error) {
 
 	var _validFor time.Duration = 86400000000000
-	var _host string = "127.0.0.1"  // 34.116.206.139
+	var _host string = "127.0.0.1" // 34.116.206.139
 	var commonName string
-	
+
 	var pub, priv interface{}
 	var err error
 
@@ -360,27 +360,27 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		if isSelfSigned {
 			commonName = "Root CA"
 		} else {
-			commonName = "Intermediate CA"		
-		}		
-	} else {		
-		commonName = peer		
+			commonName = "Intermediate CA"
+		}
+	} else {
+		commonName = peer
 	}
 
-	if curveID, ok := pubkeyAlgo.(tls.CurveID); ok {  // Hybrid KEMTLS
+	if curveID, ok := pubkeyAlgo.(tls.CurveID); ok { // Hybrid KEMTLS
 		kemID := kem.ID(curveID)
 
 		pub, priv, err = kem.GenerateKey(rand.Reader, kemID)
 		if err != nil {
 			return nil, nil, err
 		}
-	
-	} else if scheme, ok := pubkeyAlgo.(sign.Scheme); ok {  // CIRCL Signature
+
+	} else if scheme, ok := pubkeyAlgo.(sign.Scheme); ok { // CIRCL Signature
 		pub, priv, err = scheme.GenerateKey()
 
 		if err != nil {
 			log.Fatalf("Failed to generate private key: %v", err)
 		}
-	} else if scheme, ok := pubkeyAlgo.(liboqs_sig.ID); ok {  // Liboqs Hybrid Signature
+	} else if scheme, ok := pubkeyAlgo.(liboqs_sig.ID); ok { // Liboqs Hybrid Signature
 		pub, priv, err = liboqs_sig.GenerateKey(scheme)
 
 		if err != nil {
@@ -388,7 +388,6 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		}
 	}
 
-	
 	notBefore := time.Now()
 
 	notAfter := notBefore.Add(_validFor)
@@ -429,7 +428,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	}
 
 	if isSelfSigned {
-		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, &certTemplate, pub, priv)	
+		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, &certTemplate, pub, priv)
 	} else {
 		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, signer, pub, signerPrivKey)
 	}
@@ -441,11 +440,11 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	return certDERBytes, priv, nil
 }
 
-func initCAs(rootCACert *x509.Certificate, rootCAPriv, intCAAlgo interface{},) (*x509.Certificate, interface{}) {
+func initCAs(rootCACert *x509.Certificate, rootCAPriv, intCAAlgo interface{}) (*x509.Certificate, interface{}) {
 
 	intKeyUsage := x509.KeyUsageCertSign
 
-	intCACertBytes, intCAPriv, err := createCertificate(intCAAlgo, rootCACert, rootCAPriv, true, false,  "server", intKeyUsage, nil)
+	intCACertBytes, intCAPriv, err := createCertificate(intCAAlgo, rootCACert, rootCAPriv, true, false, "server", intKeyUsage, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -458,14 +457,14 @@ func initCAs(rootCACert *x509.Certificate, rootCAPriv, intCAAlgo interface{},) (
 	return intCACert, intCAPriv
 }
 
-func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {	
+func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
 	var err error
 	var cfg *tls.Config
 	var serverKeyUsage x509.KeyUsage
 
 	cfg = &tls.Config{
-		MinVersion:    tls.VersionTLS10,
-		MaxVersion:    tls.VersionTLS13,
+		MinVersion:                 tls.VersionTLS10,
+		MaxVersion:                 tls.VersionTLS13,
 		InsecureSkipVerify:         false,
 		SupportDelegatedCredential: false,
 	}
@@ -481,7 +480,7 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 	if *clientAuth {
 		cfg.ClientAuth = tls.RequireAndVerifyClientCert
 	}
-	
+
 	serverExtKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 
 	certBytes, certPriv, err := createCertificate(certAlgo, intCACert, intCAPriv, false, false, "server", serverKeyUsage, serverExtKeyUsage)
@@ -505,7 +504,7 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 	cfg.Certificates[0] = *hybridCert
 
 	if *clientAuth {
-		cfg.ClientCAs = x509.NewCertPool()	
+		cfg.ClientCAs = x509.NewCertPool()
 		cfg.ClientCAs.AddCert(rootCA)
 	}
 
@@ -531,7 +530,7 @@ func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 	}
 
 	if *clientAuth {
-		
+
 		hybridCert := new(tls.Certificate)
 		var err error
 
@@ -557,7 +556,7 @@ func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 	}
 
 	ccfg.RootCAs = x509.NewCertPool()
-	
+
 	ccfg.RootCAs.AddCert(rootCA)
 
 	return ccfg
@@ -637,8 +636,8 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 				var timingsFullProtocol []float64
 				var timingsWriteCertVerify []float64
 
-				initCSVServer()
-			
+				pqtlsInitCSVServer()
+
 				//I need only the signing cost
 				fmt.Println("   Server (" + port + ")")
 				fmt.Printf("<--| Write Server Cert Verify %v \n", timingState.serverTimingInfo.WriteCertificateVerify)
@@ -656,13 +655,13 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 							fmt.Print("4 %v", err)
 						}
 						//I grab PQTLS as the algorithm
-						//kAuth, e := authIDToName(liboqs_sig.ID(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm))						
+						//kAuth, e := authIDToName(liboqs_sig.ID(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm))
 						/*if e != nil {
 							fmt.Print("5 %v", err)
 							fmt.Println(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String())
 						}*/
 						kAuth := serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String()
-						saveCSVServer(timingsFullProtocol, timingsWriteCertVerify, kKEX, kAuth, countConnections)
+						pqtlsSaveCSVServer(timingsFullProtocol, timingsWriteCertVerify, kKEX, kAuth, countConnections)
 						countConnections = 0
 						timingsFullProtocol = nil
 						timingsWriteCertVerify = nil
@@ -699,7 +698,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		fmt.Printf("-->| Process Server Finshed       |%v| \n", timingState.clientTimingInfo.ReadServerFinished)
 		fmt.Printf("Client Total time: |%v| \n", timingState.clientTimingInfo.FullProtocol)
 		*/
-		
+
 		if *pqtls {
 			if client.ConnectionState().DidPQTLS {
 				log.Println("Client Success using PQTLS")
@@ -709,7 +708,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 				log.Println("Client Success using kemtls")
 			}
 		}
-		
+
 	}
 
 	return timingState, true, nil

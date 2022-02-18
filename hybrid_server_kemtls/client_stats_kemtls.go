@@ -12,7 +12,7 @@ import (
 	"gonum.org/v1/plot/plotter"
 )
 
-type ClientResultsInfo struct {
+type KEMTLSClientResultsInfo struct {
 	kexName                 string
 	authName                string
 	avgTotalTime            float64
@@ -26,7 +26,7 @@ type ClientResultsInfo struct {
 }
 
 //Stats: Avg, Stdev.
-func computeStats(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, hs int) (r ClientResultsInfo) {
+func kemtlsComputeStats(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, hs int) (r KEMTLSClientResultsInfo) {
 
 	//counts
 	var countTotalTime float64
@@ -64,7 +64,7 @@ func computeStats(timingsFullProtocol []float64, timingsProcessServerHello []flo
 }
 
 //print results
-func printStatistics(results []ClientResultsInfo) {
+func kemtlsPrintStatistics(results []KEMTLSClientResultsInfo) {
 	//header
 	fmt.Printf("%-23s | ", "TestName")
 	fmt.Printf("%-20s | ", "AvgClientTotalTime")
@@ -92,7 +92,7 @@ func printStatistics(results []ClientResultsInfo) {
 	}
 }
 
-func initCSV() {
+func kemtlsInitCSV() {
 	csvFile, err := os.Create("kemtls-client.csv")
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
@@ -106,8 +106,8 @@ func initCSV() {
 	csvFile.Close()
 }
 
-//func saveCSV(boxPlotValues []plotter.Values, names []string, hs int) {
-func saveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, name string, hs int) {
+//func kemtlsSaveCSV(boxPlotValues []plotter.Values, names []string, hs int) {
+func kemtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, name string, hs int) {
 	csvFile, err := os.OpenFile("kemtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
@@ -129,7 +129,7 @@ func saveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64,
 	csvFile.Close()
 }
 
-func printHybridPenalty(results []ClientResultsInfo) {
+func printHybridPenalty(results []KEMTLSClientResultsInfo) {
 	//hybrid prefixes
 	re := regexp.MustCompile(`P256|P384|P521|x25519|x448`)
 
@@ -171,8 +171,8 @@ func printHybridPenalty(results []ClientResultsInfo) {
 	}
 }
 
-func resultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
-	printStatistics(results)
+func kemtlsResultsExporter(results []KEMTLSClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
+	kemtlsPrintStatistics(results)
 	printHybridPenalty(results)
 	genbar(results, "Avg Completion Time - Client (ms)")
 	genbar(results, "Avg Write Client Hello Time (ms)")

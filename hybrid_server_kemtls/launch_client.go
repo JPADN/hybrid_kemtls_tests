@@ -1,7 +1,7 @@
 package main
 
 // Run with:
-// go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go client_stats_kemtls.go plot_functions.go -ip 127.0.0.1 -tlspeer client -handshakes 10
+// go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go client_stats_kemtls.go client_stats_pqtls.go plot_functions.go -ip 127.0.0.1 -tlspeer client -handshakes 10
 
 
 import (
@@ -52,13 +52,7 @@ func main() {
 		
 		// Creating intermediate CA to sign the Client Certificate
 		intCACert, intCAPriv = initCAs(rootCertX509, rootPriv, intSigAlgo)
-	}
-
-	//struct for the metrics
-	var algoResults ClientResultsInfo
-
-	//list of structs
-	var algoResultsList []ClientResultsInfo
+	}	
 
 	var re *regexp.Regexp
 	
@@ -73,17 +67,32 @@ func main() {
 	var kexNames []string
 
 	//prepare output file
-	initCSV()
+	if *pqtls {
+		pqtlsInitCSV()
+	} else {
+		kemtlsInitCSV()
+	}
+	
 
 	keysKEX, keysAuth := sortAlgorithmsMap()
 
-	//want same levels for the algos
-	reLevel1 := regexp.MustCompile(`P256`)
-	reLevel3 := regexp.MustCompile(`P384`)
-	reLevel5 := regexp.MustCompile(`P521`)
+	// var reLevel1, reLevel3, reLevel5 *regexp.Regexp
+	// if *pqtls {
+	// 	//want same levels for the algos
+	// 	reLevel1 = regexp.MustCompile(`P256`)
+	// 	reLevel3 = regexp.MustCompile(`P384`)
+	// 	reLevel5 = regexp.MustCompile(`P521`)
+	// }
+	
 
 	
 	if !*pqtls {
+
+		// struct for the metrics
+		var algoResults KEMTLSClientResultsInfo
+
+		// list of structs
+		var algoResultsList []KEMTLSClientResultsInfo
 	
 		for _, k := range keysKEX {
 		
@@ -121,9 +130,9 @@ func main() {
 			}
 
 			//save results first
-			saveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes)
+			kemtlsSaveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes)
 
-			algoResults = computeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
+			algoResults = kemtlsComputeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
 			algoResults.kexName = k
 			algoResults.authName = k
 
@@ -139,10 +148,16 @@ func main() {
 		}
 		
 		//export results
-		resultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
+		kemtlsResultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
 		fmt.Println("End of test.")
 	
 	} else {
+
+		// struct for the metrics
+		var algoResults PQTLSClientResultsInfo
+
+		// list of structs
+		var algoResultsList []PQTLSClientResultsInfo
 
 		// Remove later
 		keysAuth = []string{"P521_Falcon1024"}
@@ -160,16 +175,16 @@ func main() {
 					log.Fatal(err)
 				}
 
-				// auth in the same level
-				if reLevel1.MatchString(kAuth) && !reLevel1.MatchString(k) {
-					continue
-				}
-				if reLevel3.MatchString(kAuth) && !reLevel3.MatchString(k) {
-					continue
-				}
-				if reLevel5.MatchString(kAuth) && !reLevel5.MatchString(k) {
-					continue
-				}
+				// // auth in the same level
+				// if reLevel1.MatchString(kAuth) && !reLevel1.MatchString(k) {
+				// 	continue
+				// }
+				// if reLevel3.MatchString(kAuth) && !reLevel3.MatchString(k) {
+				// 	continue
+				// }
+				// if reLevel5.MatchString(kAuth) && !reLevel5.MatchString(k) {
+				// 	continue
+				// }
 
 				authSig := nameToHybridSigID(kAuth)
 			
@@ -198,9 +213,9 @@ func main() {
 				}
 
 				//save results first
-				saveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, k, kAuth, *handshakes)
+				pqtlsSaveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, k, kAuth, *handshakes)
 
-				algoResults = computeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, nil, *handshakes)
+				algoResults = pqtlsComputeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, *handshakes)
 				algoResults.kexName = k
 				algoResults.authName = kAuth
 
@@ -215,7 +230,7 @@ func main() {
 				port++
 			}
 		}
-		resultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
+		pqtlsResultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
 		fmt.Println("End of test.")
 	}		
 }

@@ -62,7 +62,7 @@ var nistLevelsTogether = [][]string{
 }
 
 
-func resultsToArray(results []ClientResultsInfo, row []string) (rArrayNames []string, rArrayTotalTime plotter.Values,
+func resultsToArray(results []KEMTLSClientResultsInfo, row []string) (rArrayNames []string, rArrayTotalTime plotter.Values,
 	rArrayCHello plotter.Values, rArrayPSHello plotter.Values, rArrayWKEMCt plotter.Values) {
 
 	for _, algo := range row {		
@@ -97,7 +97,7 @@ func switcherType(metric string, rArrayTotalTime plotter.Values, rArrayCHello pl
 /*
  * Bar chart from gonum/plot
  */
-func genbar(results []ClientResultsInfo, metric string) {	
+func genbar(results []KEMTLSClientResultsInfo, metric string) {	
 	//for i, row := range nistLevels{
 	nistLevel := 1
 	for i := 0; i < 6 ; i+=2 {
@@ -213,7 +213,7 @@ func boxplot(names []string, vals []plotter.Values, hs int) {
 
 //get data for the plot
 //datatype is PQC-only or Hybrid
-func getBarItems(results []ClientResultsInfo, datatype string,selection string) (items []opts.BarData, names []string) {
+func getBarItems(results []KEMTLSClientResultsInfo, datatype string,selection string) (items []opts.BarData, names []string) {
 
 	items = make([]opts.BarData, 0)
 
@@ -239,7 +239,7 @@ func getBarItems(results []ClientResultsInfo, datatype string,selection string) 
 	return items, names
 }
 //selection is "All" or "L1"
-func barMarkLines(results []ClientResultsInfo, selection string) { //*charts.Bar {
+func barMarkLines(results []KEMTLSClientResultsInfo, selection string) { //*charts.Bar {
 	bar := charts.NewBar()
 
 	dataPQC, pqcNames := getBarItems(results, "PQC-only", selection)

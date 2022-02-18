@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/x509"
-	"fmt"
 	"log"
 	"crypto/liboqs_sig"
 
@@ -61,9 +60,6 @@ func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
 	rootCACertString := rootData[7]
 
 	/* ---------------------------- Decoding Strings ---------------------------- */
-	fmt.Println("---")
-	fmt.Println(rootSigIDString)
-	fmt.Println("---")
 	
 	rootSigIDInt, err := strconv.ParseUint(rootSigIDString, 16, 16)
 	if err != nil {
@@ -71,8 +67,6 @@ func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
 	}
 
 	rootSigID := liboqs_sig.ID(rootSigIDInt)
-	fmt.Println(rootSigID)
-
 
 	rootCACertBytes, err := hex.DecodeString(rootCACertString)
 	if err != nil {
