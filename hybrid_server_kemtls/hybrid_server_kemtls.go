@@ -348,7 +348,7 @@ func authIDToName(lID liboqs_sig.ID) (name string, e error) {
 func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string, keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage) ([]byte, interface{}, error) {
 
 	var _validFor time.Duration = 86400000000000
-	var _host string = "127.0.0.1"	
+	var _host string = "127.0.0.1"  // 34.116.206.139
 	var commonName string
 	
 	var pub, priv interface{}
@@ -656,12 +656,16 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 							fmt.Print("4 %v", err)
 						}
 						//I grab PQTLS as the algorithm
-						//kAuth, e := authIDToName(liboqs_sig.ID(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm))
-						//if e != nil {
-						//	fmt.Print("5 %v", err)
-						//fmt.Println(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String())
-						//}
-						saveCSVServer(timingsFullProtocol, timingsWriteCertVerify, kKEX, "AuthAlgo", countConnections)
+						//kAuth, e := authIDToName(liboqs_sig.ID(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm))						
+						/*if e != nil {
+							fmt.Print("5 %v", err)
+							fmt.Println(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String())
+						}*/
+						kAuth := serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String()
+						saveCSVServer(timingsFullProtocol, timingsWriteCertVerify, kKEX, kAuth, countConnections)
+						countConnections = 0
+						timingsFullProtocol = nil
+						timingsWriteCertVerify = nil
 						fmt.Println()
 					}
 				}

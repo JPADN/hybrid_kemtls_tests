@@ -77,65 +77,70 @@ func main() {
 
 	keysKEX, keysAuth := sortAlgorithmsMap()
 
+	//want same levels for the algos
+	reLevel1 := regexp.MustCompile(`P256`)
+	reLevel3 := regexp.MustCompile(`P384`)
+	reLevel5 := regexp.MustCompile(`P521`)
+
 	
 	if !*pqtls {
 	
 		for _, k := range keysKEX {
 		
-		strport := fmt.Sprintf("%d", port)
-		fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
-		
-		kexCurveID, err := nameToCurveID(k)		
-		if err != nil {
-			log.Fatal(err)
-		}
-		
-		clientConfig := initClient(kexCurveID, intCACert, intCAPriv, rootCertX509)
-
-		// Select here the algorithm to be used in the KEX
-		clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
-
-		fmt.Printf("Starting KEMTLS Handshakes: KEX Algorithm: %s (0x%x) - Auth Algorithm: %s (0x%x)\n",
-			k, kem.ID(kexCurveID),
-			k, kem.ID(kexCurveID)) //note: removed 'authCurveID'
-
-		var timingsFullProtocol []float64
-		var timingsProcessServerHello []float64
-		var timingsWriteClientHello []float64
-		var timingsWriteKEMCiphertext []float64
-
-		for i := 0; i < *handshakes; i++ {
-			timingState, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
+			strport := fmt.Sprintf("%d", port)
+			fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
+			
+			kexCurveID, err := nameToCurveID(k)		
 			if err != nil {
 				log.Fatal(err)
 			}
-			timingsFullProtocol = append(timingsFullProtocol, float64(timingState.clientTimingInfo.FullProtocol)/float64(time.Millisecond))
-			timingsProcessServerHello = append(timingsProcessServerHello, float64(timingState.clientTimingInfo.ProcessServerHello)/float64(time.Millisecond))
-			timingsWriteClientHello = append(timingsWriteClientHello, float64(timingState.clientTimingInfo.WriteClientHello)/float64(time.Millisecond))
-			timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, float64(timingState.clientTimingInfo.WriteKEMCiphertext)/float64(time.Millisecond))
+			
+			clientConfig := initClient(kexCurveID, intCACert, intCAPriv, rootCertX509)
+
+			// Select here the algorithm to be used in the KEX
+			clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
+
+			fmt.Printf("Starting KEMTLS Handshakes: KEX Algorithm: %s (0x%x) - Auth Algorithm: %s (0x%x)\n",
+				k, kem.ID(kexCurveID),
+				k, kem.ID(kexCurveID)) //note: removed 'authCurveID'
+
+			var timingsFullProtocol []float64
+			var timingsProcessServerHello []float64
+			var timingsWriteClientHello []float64
+			var timingsWriteKEMCiphertext []float64
+
+			for i := 0; i < *handshakes; i++ {
+				timingState, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
+				if err != nil {
+					log.Fatal(err)
+				}
+				timingsFullProtocol = append(timingsFullProtocol, float64(timingState.clientTimingInfo.FullProtocol)/float64(time.Millisecond))
+				timingsProcessServerHello = append(timingsProcessServerHello, float64(timingState.clientTimingInfo.ProcessServerHello)/float64(time.Millisecond))
+				timingsWriteClientHello = append(timingsWriteClientHello, float64(timingState.clientTimingInfo.WriteClientHello)/float64(time.Millisecond))
+				timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, float64(timingState.clientTimingInfo.WriteKEMCiphertext)/float64(time.Millisecond))
+			}
+
+			//save results first
+			saveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes)
+
+			algoResults = computeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
+			algoResults.kexName = k
+			algoResults.authName = k
+
+			algoResultsList = append(algoResultsList, algoResults)
+
+			if re.MatchString(k) {
+				//boxplot data for hybrids
+				boxPlotValues = append(boxPlotValues, (timingsFullProtocol))
+				kexNames = append(kexNames, k)
+			}
+
+			port++
 		}
-
-		//save results first
-		saveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes)
-
-		algoResults = computeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
-		algoResults.kexName = k
-		algoResults.authName = k
-
-		algoResultsList = append(algoResultsList, algoResults)
-
-		if re.MatchString(k) {
-			//boxplot data for hybrids
-			boxPlotValues = append(boxPlotValues, (timingsFullProtocol))
-			kexNames = append(kexNames, k)
-		}
-
-		port++
-	}
 		
-	//export results
-	resultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
-	fmt.Println("End of test.")
+		//export results
+		resultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
+		fmt.Println("End of test.")
 	
 	} else {
 
@@ -148,11 +153,22 @@ func main() {
 			
 				strport := fmt.Sprintf("%d", port)
 			
-				fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
+				// fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
 			
 				kexCurveID, err := nameToCurveID(k)					
 				if err != nil {
 					log.Fatal(err)
+				}
+
+				// auth in the same level
+				if reLevel1.MatchString(kAuth) && !reLevel1.MatchString(k) {
+					continue
+				}
+				if reLevel3.MatchString(kAuth) && !reLevel3.MatchString(k) {
+					continue
+				}
+				if reLevel5.MatchString(kAuth) && !reLevel5.MatchString(k) {
+					continue
 				}
 
 				authSig := nameToHybridSigID(kAuth)
