@@ -327,6 +327,24 @@ func nameToHybridSigID(name string) (interface {}) {
 	panic("Algorithm not found")
 }
 
+func CurveIDToName(cID tls.CurveID) (name string, e error) {
+	for n, id := range hsKEXAlgorithms {
+		if id == cID {
+			return n, nil
+		}
+	}
+	return "0", errors.New("ERROR: Algorithm not found")
+}
+
+func authIDToName(lID liboqs_sig.ID) (name string, e error) {
+	for n, id := range hsHybridAuthAlgorithms {
+		if id == lID {
+			return n, nil
+		}
+	}
+	return "0", errors.New("ERROR: Auth Algorithm not found")
+}
+
 func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string, keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage) ([]byte, interface{}, error) {
 
 	var _validFor time.Duration = 86400000000000
@@ -580,6 +598,8 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 	}
 	buf := make([]byte, bufLen)
 	if peer == "server" {
+		countConnections := 0
+
 		ln := newLocalListener(ipserver, port)
 		defer ln.Close()
 		for {
@@ -590,16 +610,19 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 			serverConn, err := ln.Accept()
 			if err != nil {
 				fmt.Print(err)
+				fmt.Print("error 1 %v", err)
 			}
 			server := tls.Server(serverConn, serverConfig)
 			if err := server.Handshake(); err != nil {
 				fmt.Printf("Handshake error %v", err)
 			}
+			countConnections++
 
 			//server read client hello
 			n, err := server.Read(buf)
 			if err != nil || n != len(clientMsg) {
 				fmt.Print(err)
+				fmt.Print("error 2 %v", err)
 			}
 
 			//server responds
@@ -607,24 +630,45 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 			if n != len(serverMsg) || err != nil {
 				//error
 				fmt.Print(err)
+				fmt.Print("error 3 %v", err)
 			}
-			/*fmt.Println("   Server")
-			fmt.Printf("   | Receive Client Hello     %v \n", timingState.serverTimingInfo.ProcessClientHello)
-			fmt.Printf("   | Write Server Hello       %v \n", timingState.serverTimingInfo.WriteServerHello)
-			fmt.Printf("   | Write Server Enc Exts    %v \n", timingState.serverTimingInfo.WriteEncryptedExtensions)
-			fmt.Printf("<--| Write Server Certificate %v \n", timingState.serverTimingInfo.WriteCertificate)
 
-			fmt.Println("   Server")
-			fmt.Printf("-->| Receive KEM Ciphertext     %v \n", timingState.serverTimingInfo.ReadKEMCiphertext)
-			fmt.Printf("   | Receive Client Finished    %v \n", timingState.serverTimingInfo.ReadClientFinished)
-			fmt.Printf("<--| Write Server Finished      %v \n", timingState.serverTimingInfo.WriteServerFinished)
+			if *pqtls {
+				var timingsFullProtocol []float64
+				var timingsWriteCertVerify []float64
 
-			fmt.Printf("Server Total time: %v \n", timingState.serverTimingInfo.FullProtocol)*/
-			/*if server.ConnectionState().DidKEMTLS {
-				fmt.Println("Server Success using kemtls")
-			}*/
+				initCSVServer()
+			
+				//I need only the signing cost
+				fmt.Println("   Server (" + port + ")")
+				fmt.Printf("<--| Write Server Cert Verify %v \n", timingState.serverTimingInfo.WriteCertificateVerify)
+
+				if server.ConnectionState().DidPQTLS {
+					/*if server.ConnectionState().DidPQTLS {
+						fmt.Println("Server Success using PQtls")
+					}*/
+					timingsFullProtocol = append(timingsFullProtocol, float64(timingState.serverTimingInfo.FullProtocol)/float64(time.Millisecond))
+					timingsWriteCertVerify = append(timingsWriteCertVerify, float64(timingState.serverTimingInfo.WriteCertificateVerify)/float64(time.Millisecond))
+
+					if countConnections >= 2 {
+						kKEX, e := CurveIDToName(serverConfig.CurvePreferences[0])
+						if e != nil {
+							fmt.Print("4 %v", err)
+						}
+						//I grab PQTLS as the algorithm
+						//kAuth, e := authIDToName(liboqs_sig.ID(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm))
+						//if e != nil {
+						//	fmt.Print("5 %v", err)
+						//fmt.Println(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String())
+						//}
+						saveCSVServer(timingsFullProtocol, timingsWriteCertVerify, kKEX, "AuthAlgo", countConnections)
+						fmt.Println()
+					}
+				}
+			}
 		}
 	}
+
 	if peer == "client" {
 
 		client, err := tls.Dial("tcp", ipserver+":"+port, clientConfig)
@@ -651,9 +695,17 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		fmt.Printf("-->| Process Server Finshed       |%v| \n", timingState.clientTimingInfo.ReadServerFinished)
 		fmt.Printf("Client Total time: |%v| \n", timingState.clientTimingInfo.FullProtocol)
 		*/
-		/*		if client.ConnectionState().DidKEMTLS {
+		
+		if *pqtls {
+			if client.ConnectionState().DidPQTLS {
+				log.Println("Client Success using PQTLS")
+			}
+		} else {
+			if client.ConnectionState().DidKEMTLS {
 				log.Println("Client Success using kemtls")
-			}*/
+			}
+		}
+		
 	}
 
 	return timingState, true, nil

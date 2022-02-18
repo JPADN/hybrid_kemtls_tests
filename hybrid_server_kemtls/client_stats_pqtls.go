@@ -21,6 +21,16 @@ type ClientResultsInfo struct {
 	stdevWriteClientHello   float64
 }
 
+type ServerResultsInfo struct {
+	kexName              string
+	authName             string
+	avgTotalTime         float64
+	avgWriteCertVerify   float64
+	stdevTotalTime       float64
+	stdevWriteCertVerify float64
+}
+
+
 //Stats: Avg, Stdev.
 func computeStats(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, dummy []float64, hs int) (r ClientResultsInfo) {
 
@@ -57,25 +67,25 @@ func computeStats(timingsFullProtocol []float64, timingsProcessServerHello []flo
 //print results
 func printStatistics(results []ClientResultsInfo) {
 	//header
-	fmt.Printf("%-23s | ", "TestName")
+	fmt.Printf("%-47s | ", "TestName")
 	fmt.Printf("%-20s | ", "AvgClientTotalTime")
 	fmt.Printf("%-20s | ", "StdevClientTotalTime")
 	fmt.Printf("%-20s | ", "AvgWrtCHelloTime")
 	fmt.Printf("%-20s | ", "StdevWrtCHelloTime")
 	fmt.Printf("%-20s | ", "AvgPrSHelloTime")
-	fmt.Printf("%-20s | ", "StdevPrSHelloTime")
+	fmt.Printf("%-20s  ", "StdevPrSHelloTime")
 
 	for _, r := range results {
 		//content
 		fmt.Println()
-		fmt.Printf("%-23s |", r.kexName)
+		fmt.Printf("%23s %23s |", r.kexName, r.authName)
 
 		fmt.Printf(" %-20f |", r.avgTotalTime)
 		fmt.Printf(" %-20f |", r.stdevTotalTime)
 		fmt.Printf(" %-20f |", r.avgWriteClientHello)
 		fmt.Printf(" %-20f |", r.stdevWriteClientHello)
 		fmt.Printf(" %-20f |", r.avgProcessServerHello)
-		fmt.Printf(" %-20f |", r.stdevProcessServerHello)
+		fmt.Printf(" %-20f ", r.stdevProcessServerHello)
 	}
 }
 
@@ -86,14 +96,14 @@ func initCSV() {
 	}
 	csvwriter := csv.NewWriter(csvFile)
 
-	header := []string{"algo", "timingFullProtocol", "timingProcessServerHello", "timingWriteClientHello"}
+	header := []string{"KEXAlgo", "authAlgo", "timingFullProtocol", "timingProcessServerHello", "timingWriteClientHello"}
 
 	csvwriter.Write(header)
 	csvwriter.Flush()
 	csvFile.Close()
 }
 
-func saveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, dummy []float64, name string, hs int) {
+func saveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, name, authName string, hs int) {	
 	csvFile, err := os.OpenFile("pqtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
@@ -102,7 +112,7 @@ func saveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64,
 	csvwriter := csv.NewWriter(csvFile)
 
 	for i := 0; i < hs; i++ {
-		arrayStr := []string{name, fmt.Sprintf("%f", timingsFullProtocol[i]),
+		arrayStr := []string{name, authName, fmt.Sprintf("%f", timingsFullProtocol[i]),
 			fmt.Sprintf("%f", timingsProcessServerHello[i]),
 			fmt.Sprintf("%f", timingsWriteClientHello[i]),
 			fmt.Sprintf("%f", timingsProcessServerHello[i])}
@@ -117,11 +127,42 @@ func saveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64,
 
 func resultsExporter(results []ClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
 	printStatistics(results)
-	//printHybridPenalty(results)
-	/*	genbar(results, "Avg Completion Time - Client (ms)")
-		genbar(results, "Avg Write Client Hello Time (ms)")
-		genbar(results, "Avg Process Server Hello - Client (ms)")
-		boxplot(names, boxPlotValues, hs)
-		barMarkLines(results, "All")
-		barMarkLines(results, "L1")*/
+	//plots are not needed (here) since:
+	//we are not comparing PQC-only vs Hybrid PQTLS
+	//we are not testing KEMTLS together with PQTLS
+}
+
+func initCSVServer() {
+	csvFile, err := os.Create("pqtls-server.csv")
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+	csvwriter := csv.NewWriter(csvFile)
+
+	header := []string{"KEXAlgo", "authAlgo", "timingFullProtocol", "timingWriteCertVerify"}
+
+	csvwriter.Write(header)
+	csvwriter.Flush()
+	csvFile.Close()
+}
+
+func saveCSVServer(timingsFullProtocol []float64, timingsWriteCertVerify []float64, name string, authName string, hs int) {
+	csvFile, err := os.OpenFile("pqtls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		log.Fatalf("failed opening file: %s", err)
+	}
+
+	csvwriter := csv.NewWriter(csvFile)
+
+	for i := 0; i < hs; i++ {
+		arrayStr := []string{name, fmt.Sprintf("%f", timingsFullProtocol[i]),
+			fmt.Sprintf("%f", timingsWriteCertVerify[i]),
+		}
+
+		if err := csvwriter.Write(arrayStr); err != nil {
+			log.Fatalln("error writing record to file", err)
+		}
+		csvwriter.Flush()
+	}
+	csvFile.Close()
 }

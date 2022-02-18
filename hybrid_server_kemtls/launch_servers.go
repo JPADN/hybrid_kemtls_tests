@@ -90,6 +90,8 @@ func launchServer() {
 		}	
 	}	else {
 
+		i := 0
+
 		for _, kAuth := range keysAuth {
 
 			for _, k := range keysKEX {
@@ -111,10 +113,12 @@ func launchServer() {
 
 				wg.Add(1)
 				//start
-					fmt.Println("Starting " + k + " Hybrid PQTLS " + kAuth + " server at " + *IPserver + ":" + strport + "...")
+				fmt.Println(fmt.Sprintf("%v", i) + " Starting " + k + " Hybrid PQTLS " + kAuth + " server at " + *IPserver + ":" + strport + "...")
+
 				startServerHybrid(serverMsg, serverConfig, *IPserver, strport)
 
 				port++
+				i++
 			}
 		}	
 	}

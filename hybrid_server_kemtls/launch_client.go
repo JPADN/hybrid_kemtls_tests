@@ -3,9 +3,6 @@ package main
 // Run with:
 // go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go client_stats_kemtls.go plot_functions.go -ip 127.0.0.1 -tlspeer client -handshakes 10
 
-// Optionals:
-// plot_functions.go
-
 
 import (
 	"crypto/kem"
@@ -185,11 +182,11 @@ func main() {
 				}
 
 				//save results first
-				saveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, nil, k, *handshakes)
+				saveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, k, kAuth, *handshakes)
 
 				algoResults = computeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, nil, *handshakes)
 				algoResults.kexName = k
-				algoResults.authName = k
+				algoResults.authName = kAuth
 
 				algoResultsList = append(algoResultsList, algoResults)
 
@@ -202,7 +199,7 @@ func main() {
 				port++
 			}
 		}
-		//	resultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
+		resultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
 		fmt.Println("End of test.")
 	}		
 }
