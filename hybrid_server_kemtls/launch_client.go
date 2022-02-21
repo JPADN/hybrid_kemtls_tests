@@ -159,9 +159,6 @@ func main() {
 		// list of structs
 		var algoResultsList []PQTLSClientResultsInfo
 
-		// Remove later
-		keysAuth = []string{"P521_Falcon1024"}
-
 		for _, kAuth := range keysAuth {
 			
 			for _, k := range keysKEX {
