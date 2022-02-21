@@ -347,7 +347,14 @@ func authIDToName(lID liboqs_sig.ID) (name string, e error) {
 
 func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string, keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage) ([]byte, interface{}, error) {
 
-	var _validFor time.Duration = 86400000000000
+	var _validFor time.Duration
+
+	if isCA {
+		_validFor = 8760 * time.Hour  // 1 year
+	} else {
+		_validFor = 240 * time.Hour  // 10 days
+	}
+
 	var _host string = "127.0.0.1" // 34.116.206.139
 	var commonName string
 
@@ -597,10 +604,14 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 	}
 	buf := make([]byte, bufLen)
 	if peer == "server" {
+		var timingsFullProtocol []float64
+		var timingsWriteCertVerify []float64
+		
 		countConnections := 0
 
 		ln := newLocalListener(ipserver, port)
 		defer ln.Close()
+		
 		for {
 
 			//			fmt.Println("Server Awaiting connection...")
@@ -633,8 +644,6 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 			}
 
 			if *pqtls {
-				var timingsFullProtocol []float64
-				var timingsWriteCertVerify []float64
 
 				pqtlsInitCSVServer()
 

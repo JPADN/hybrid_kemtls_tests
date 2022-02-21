@@ -1,5 +1,7 @@
 package main
 
+// go run generate_hybrid_root.go hybrid_server_kemtls.go client_stats_pqtls.go
+
 import (
 	"bufio"
 	"log"
