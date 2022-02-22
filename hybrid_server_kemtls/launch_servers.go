@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	// "regexp"
+	"regexp"
 )
 
 var wg sync.WaitGroup
@@ -30,10 +30,10 @@ func launchServer() {
 
 	keysKEX, keysAuth := sortAlgorithmsMap()
 
-	// //want same levels for the algos
-	// reLevel1 := regexp.MustCompile(`P256`)
-	// reLevel3 := regexp.MustCompile(`P384`)
-	// reLevel5 := regexp.MustCompile(`P521`)
+	// want same levels for the algos
+	reLevel1 := regexp.MustCompile(`P256`)
+	reLevel3 := regexp.MustCompile(`P384`)
+	reLevel5 := regexp.MustCompile(`P521`)
 	
 	var rootCertX509 *x509.Certificate
 	var rootPriv interface{}
@@ -108,16 +108,16 @@ func launchServer() {
 					log.Fatal(err)
 				}
 
-				// // auth in the same level
-				// if reLevel1.MatchString(kAuth) && !reLevel1.MatchString(k) {
-				// 	continue
-				// }
-				// if reLevel3.MatchString(kAuth) && !reLevel3.MatchString(k) {
-				// 	continue
-				// }
-				// if reLevel5.MatchString(kAuth) && !reLevel5.MatchString(k) {
-				// 	continue
-				// }
+				// auth in the same level
+				if reLevel1.MatchString(kAuth) && !reLevel1.MatchString(k) {
+					continue
+				}
+				if reLevel3.MatchString(kAuth) && !reLevel3.MatchString(k) {
+					continue
+				}
+				if reLevel5.MatchString(kAuth) && !reLevel5.MatchString(k) {
+					continue
+				}
 				
 				authSigID := nameToHybridSigID(kAuth)
 

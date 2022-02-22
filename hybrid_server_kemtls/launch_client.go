@@ -76,13 +76,13 @@ func main() {
 
 	keysKEX, keysAuth := sortAlgorithmsMap()
 
-	// var reLevel1, reLevel3, reLevel5 *regexp.Regexp
-	// if *pqtls {
-	// 	//want same levels for the algos
-	// 	reLevel1 = regexp.MustCompile(`P256`)
-	// 	reLevel3 = regexp.MustCompile(`P384`)
-	// 	reLevel5 = regexp.MustCompile(`P521`)
-	// }
+	var reLevel1, reLevel3, reLevel5 *regexp.Regexp
+	if *pqtls {
+		//want same levels for the algos
+		reLevel1 = regexp.MustCompile(`P256`)
+		reLevel3 = regexp.MustCompile(`P384`)
+		reLevel5 = regexp.MustCompile(`P521`)
+	}
 	
 
 	
@@ -172,16 +172,16 @@ func main() {
 					log.Fatal(err)
 				}
 
-				// // auth in the same level
-				// if reLevel1.MatchString(kAuth) && !reLevel1.MatchString(k) {
-				// 	continue
-				// }
-				// if reLevel3.MatchString(kAuth) && !reLevel3.MatchString(k) {
-				// 	continue
-				// }
-				// if reLevel5.MatchString(kAuth) && !reLevel5.MatchString(k) {
-				// 	continue
-				// }
+				// auth in the same level
+				if reLevel1.MatchString(kAuth) && !reLevel1.MatchString(k) {
+					continue
+				}
+				if reLevel3.MatchString(kAuth) && !reLevel3.MatchString(k) {
+					continue
+				}
+				if reLevel5.MatchString(kAuth) && !reLevel5.MatchString(k) {
+					continue
+				}
 
 				authSig := nameToHybridSigID(kAuth)
 			
