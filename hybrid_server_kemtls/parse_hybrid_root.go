@@ -15,7 +15,48 @@ import (
 	"encoding/asn1"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+
+	"io"
+	"fmt"
 )
+
+// Development utility only
+// Remove later
+func countFileLines() {
+
+	file, err := os.Open("hybrid_root_ca.txt")
+	if err != nil {
+			log.Fatal(err)
+	}
+	defer file.Close()
+
+	r := bufio.NewReader(file)
+	max_count := 0
+	count := 0
+
+	for {
+		if c, _, err := r.ReadRune(); err != nil {
+			if err == io.EOF {
+					break
+			} else {
+					log.Fatal(err)
+			}
+		} else {				
+			if string(c) == "\n"{
+				if count > max_count {
+					max_count = count
+				}
+				
+				count = 0					
+			
+			} else {
+				count = count + 1
+			}				
+		}
+	}
+
+	fmt.Println(max_count)
+}
 
 
 func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
@@ -32,11 +73,10 @@ func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
 
 	scanner := bufio.NewScanner(file)
 	
-	// optionally, resize scanner's capacity for lines over 64K
-
-	// const maxCapacity = longLineLen  // your required line length
-	// buf := make([]byte, maxCapacity)
-	// scanner.Buffer(buf, maxCapacity)
+	// Resizing scanner's capacity due to P521_RainbowVClassic certificates
+	const maxCapacity = 3862673
+	buf := make([]byte, maxCapacity)
+	scanner.Buffer(buf, maxCapacity)
 
 	for scanner.Scan() {
 		rootData = append(rootData, scanner.Text())
@@ -96,7 +136,7 @@ func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
 		panic(err)
 	}
 
-	classicPriv, err := x509.ParseECPrivateKeyGambiarra(namedCurveOID, privBytes)
+	classicPriv, err := x509.ParseECPrivateKeyWithOID(namedCurveOID, privBytes)
 	if err != nil {
 		panic(err)
 	}
@@ -119,23 +159,18 @@ func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
 
 	/* ------------------ Instantiating Public and Private Key ------------------ */
 
-	rootCAPub := new(liboqs_sig.PublicKey)
-	rootCAPub.SigId = rootSigID
-	rootCAPub.Classic = classicPub
-	rootCAPub.Pqc, err = hex.DecodeString(rootPubPqc)
+	rootPQCPubBytes, err := hex.DecodeString(rootPubPqc)
 	if err != nil {
 		panic(err)
 	}
 
-	rootCAPriv := new(liboqs_sig.PrivateKey)
-	rootCAPriv.SigId = rootSigID
-	rootCAPriv.Classic = classicPriv
-	rootCAPriv.Pqc, err = hex.DecodeString(rootPrivPqc)
+	rootPQCPrivBytesc, err := hex.DecodeString(rootPrivPqc)
 	if err != nil {
 		panic(err)
 	}
 
-	rootCAPriv.HybridPub = rootCAPub
+	rootCAPub := liboqs_sig.ConstructPublicKey(rootSigID, classicPub, rootPQCPubBytes)
+	rootCAPriv := liboqs_sig.ConstructPrivateKey(rootSigID, classicPriv, rootPQCPrivBytesc, rootCAPub)
 
 	return rootCACert, rootCAPriv
 }

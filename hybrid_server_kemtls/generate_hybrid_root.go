@@ -12,8 +12,11 @@ import (
 	"encoding/asn1"
 	"encoding/hex"
 	"strconv"
-	// tests "tls_tests/hybrid_server_kemtls"
+	"flag"
 )
+
+var rootAlgo = flag.String("algo", "P256_Dilithium2", "Root CA Algorithm")	
+
 
 func generateRoot(rootCAAlgo interface{}, curve elliptic.Curve) {
 	/* ---------------------------- Root Certificate ---------------------------- */
@@ -53,24 +56,24 @@ func generateRoot(rootCAAlgo interface{}, curve elliptic.Curve) {
 		curveString = "P521"
 	}
 
+	privClassic, privPqc, pub := liboqs_sig.GetPrivateKeyMembers(priv)
+	pubClassic, pubPqc := liboqs_sig.GetPublicKeyMembers(pub)
 
-	rootPrivBytes, err := x509.MarshalECPrivateKeyWithOID(priv.Classic, nil)
 
+	rootPrivBytes, err := x509.MarshalECPrivateKey(privClassic)
 	if err != nil {
 		panic("x509: failed to marshal EC private key while building PKCS#8: " + err.Error())
 	}
 
 /* --------------------------- Public Key Marshal --------------------------- */
 
-	pub := priv.HybridPub
-
-	classicPubBytes := elliptic.Marshal(pub.Classic.Curve, pub.Classic.X, pub.Classic.Y)
+	classicPubBytes := elliptic.Marshal(pubClassic.Curve, pubClassic.X, pubClassic.Y)
 
 	/* ----------------------------- Writing to File ---------------------------- */
 
 	sigIDString := strconv.FormatInt(int64(priv.SigId), 16)
 
-	rootCAData := []string{sigIDString, curveString, hex.EncodeToString(oidBytes), hex.EncodeToString(rootPrivBytes), hex.EncodeToString(priv.Pqc), hex.EncodeToString(classicPubBytes), hex.EncodeToString(pub.Pqc), hex.EncodeToString(rootCACertBytes)}
+	rootCAData := []string{sigIDString, curveString, hex.EncodeToString(oidBytes), hex.EncodeToString(rootPrivBytes), hex.EncodeToString(privPqc), hex.EncodeToString(classicPubBytes), hex.EncodeToString(pubPqc), hex.EncodeToString(rootCACertBytes)}
  
 	
 	file, err := os.OpenFile("hybrid_root_ca.txt", os.O_CREATE|os.O_WRONLY, 0644) 
@@ -90,11 +93,16 @@ func generateRoot(rootCAAlgo interface{}, curve elliptic.Curve) {
 
 func main() {
 
-	rootCAAlgo := liboqs_sig.P256_Dilithium2
-	curve, _ := liboqs_sig.ClassicFromSig(rootCAAlgo)
-	// rootCAAlgo := liboqs_sig.P384_Dilithium3
-	// rootCAAlgo := liboqs_sig.P521_Dilithium5
+	flag.Parse()
 
-	generateRoot(rootCAAlgo, curve)
+	rootSigInterface := nameToHybridSigID(*rootAlgo)
+
+	rootSigID, ok := rootSigInterface.(liboqs_sig.ID)
+	if !ok {
+		panic("Not a Liboqs Hybrid Signature")
+	}
+
+	curve, _ := liboqs_sig.ClassicFromSig(rootSigID)
+	generateRoot(rootSigID, curve)
 
 } 
