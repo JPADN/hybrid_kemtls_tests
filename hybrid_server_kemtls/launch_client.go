@@ -1,8 +1,7 @@
 package main
 
 // Run with:
-// go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go client_stats_kemtls.go client_stats_pqtls.go plot_functions.go -ip 127.0.0.1 -tlspeer client -handshakes 10
-
+// go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_kemtls.go stats_pqtls.go plot_functions.go -ip 127.0.0.1 -tlspeer client -handshakes 10
 
 import (
 	"crypto/kem"
@@ -12,7 +11,8 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"time"	
+	"time"
+
 	"gonum.org/v1/plot/plotter"
 )
 
@@ -24,14 +24,14 @@ func main() {
 
 	clientMsg := "hello, server"
 
-	port := 4433	
+	port := 4433
 
 	var rootCertX509 *x509.Certificate
 	var rootPriv interface{}
 
 	if *hybridRoot {
 		rootCertX509, rootPriv = constructHybridRoot()
-	
+
 	} else {
 		tempRootCertTLS, err := tls.X509KeyPair([]byte(rootCert), []byte(rootKey))
 		if err != nil {
@@ -46,16 +46,15 @@ func main() {
 		rootPriv = tempRootCertTLS.PrivateKey
 	}
 
-
 	if *clientAuth {
 		intSigAlgo := nameToHybridSigID(*intCAAlgo)
-		
+
 		// Creating intermediate CA to sign the Client Certificate
 		intCACert, intCAPriv = initCAs(rootCertX509, rootPriv, intSigAlgo)
-	}	
+	}
 
 	var re *regexp.Regexp
-	
+
 	//boxPlot data
 	if *pqtls {
 		re = regexp.MustCompile(`P256`)
@@ -72,7 +71,6 @@ func main() {
 	} else {
 		kemtlsInitCSV()
 	}
-	
 
 	keysKEX, keysAuth := sortAlgorithmsMap()
 
@@ -83,9 +81,7 @@ func main() {
 		reLevel3 = regexp.MustCompile(`P384`)
 		reLevel5 = regexp.MustCompile(`P521`)
 	}
-	
 
-	
 	if !*pqtls {
 
 		// struct for the metrics
@@ -93,17 +89,17 @@ func main() {
 
 		// list of structs
 		var algoResultsList []KEMTLSClientResultsInfo
-	
+
 		for _, k := range keysKEX {
-		
+
 			strport := fmt.Sprintf("%d", port)
 			fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
-			
-			kexCurveID, err := nameToCurveID(k)		
+
+			kexCurveID, err := nameToCurveID(k)
 			if err != nil {
 				log.Fatal(err)
 			}
-			
+
 			clientConfig := initClient(kexCurveID, intCACert, intCAPriv, rootCertX509)
 
 			// Select here the algorithm to be used in the KEX
@@ -146,11 +142,11 @@ func main() {
 
 			port++
 		}
-		
+
 		//export results
 		kemtlsResultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
 		fmt.Println("End of test.")
-	
+
 	} else {
 
 		// struct for the metrics
@@ -160,14 +156,14 @@ func main() {
 		var algoResultsList []PQTLSClientResultsInfo
 
 		for _, kAuth := range keysAuth {
-			
+
 			for _, k := range keysKEX {
-			
+
 				strport := fmt.Sprintf("%d", port)
-			
+
 				// fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
-			
-				kexCurveID, err := nameToCurveID(k)					
+
+				kexCurveID, err := nameToCurveID(k)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -184,19 +180,19 @@ func main() {
 				}
 
 				authSig := nameToHybridSigID(kAuth)
-			
+
 				clientConfig := initClient(authSig, intCACert, intCAPriv, rootCertX509)
 
 				// Select here the algorithm to be used in the KEX
 				clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
 				fmt.Printf("Starting PQTLS Handshakes: KEX Algorithm: %s - Auth Algorithm: %s \n",
-						k, kAuth) //note: removed 'authCurveID'
+					k, kAuth) //note: removed 'authCurveID'
 
 				var timingsFullProtocol []float64
 				var timingsProcessServerHello []float64
 				var timingsWriteClientHello []float64
-					//var timingsWriteKEMCiphertext []float64
+				//var timingsWriteKEMCiphertext []float64
 
 				for i := 0; i < *handshakes; i++ {
 					timingState, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
@@ -206,7 +202,7 @@ func main() {
 					timingsFullProtocol = append(timingsFullProtocol, float64(timingState.clientTimingInfo.FullProtocol)/float64(time.Millisecond))
 					timingsProcessServerHello = append(timingsProcessServerHello, float64(timingState.clientTimingInfo.ProcessServerHello)/float64(time.Millisecond))
 					timingsWriteClientHello = append(timingsWriteClientHello, float64(timingState.clientTimingInfo.WriteClientHello)/float64(time.Millisecond))
-						//timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, float64(timingState.clientTimingInfo.WriteKEMCiphertext)/float64(time.Millisecond))
+					//timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, float64(timingState.clientTimingInfo.WriteKEMCiphertext)/float64(time.Millisecond))
 				}
 
 				//save results first
@@ -229,5 +225,5 @@ func main() {
 		}
 		pqtlsResultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
 		fmt.Println("End of test.")
-	}		
+	}
 }

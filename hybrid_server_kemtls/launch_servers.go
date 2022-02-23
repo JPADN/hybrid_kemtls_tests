@@ -1,7 +1,7 @@
 package main
 
 // Command to run:
-// go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go client_stats_pqtls.go
+// go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go
 
 import (
 	"crypto/tls"	
@@ -9,8 +9,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"sync"
 	"regexp"
+	"sync"
 )
 
 var wg sync.WaitGroup
