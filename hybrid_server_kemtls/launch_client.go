@@ -5,6 +5,7 @@ package main
 
 import (
 	"crypto/kem"
+	"crypto/liboqs_sig"
 	"crypto/tls"
 	"crypto/x509"
 	"flag"
@@ -16,23 +17,13 @@ import (
 	"gonum.org/v1/plot/plotter"
 )
 
-func main() {
-	flag.Parse()
-
-	var intCACert *x509.Certificate = nil
-	var intCAPriv interface{} = nil
-
-	clientMsg := "hello, server"
-
-	port := 4433
-
-	var rootCertX509 *x509.Certificate
-	var rootPriv interface{}
+func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509.Certificate, rootPriv interface{}) {
 
 	if *hybridRoot {
-		rootCertX509, rootPriv = constructHybridRoot()
+		rootCertX509, rootPriv = constructHybridRoot(secNum)
 
 	} else {
+
 		tempRootCertTLS, err := tls.X509KeyPair([]byte(rootCert), []byte(rootKey))
 		if err != nil {
 			panic(err)
@@ -46,13 +37,40 @@ func main() {
 		rootPriv = tempRootCertTLS.PrivateKey
 	}
 
-	if *clientAuth {
-		intSigAlgo := nameToHybridSigID(*intCAAlgo)
+	intCACert, intCAPriv := initCAs(rootCertX509, rootPriv, rootPriv.(*liboqs_sig.PrivateKey).SigId)
+	return rootCertX509, intCACert, intCAPriv
+}
 
-		// Creating intermediate CA to sign the Client Certificate
-		intCACert, intCAPriv = initCAs(rootCertX509, rootPriv, intSigAlgo)
+func getSecurityLevel(k string) (level int) {
+	// want same levels for the algos
+	reLevel1 := regexp.MustCompile(`P256`)
+	reLevel3 := regexp.MustCompile(`P384`)
+	reLevel5 := regexp.MustCompile(`P521`)
+
+	if reLevel1.MatchString(k) || k == "Kyber512" || k == "LightSaber_KEM" || k == "NTRU_HPS_2048_509" {
+		return 1
+	} else {
+		if reLevel3.MatchString(k) || k == "Kyber768" || k == "Saber_KEM" || k == "NTRU_HPS_2048_677" || k == "NTRU_HRSS_701" {
+			return 3
+		} else {
+			if reLevel5.MatchString(k) || k == "Kyber1024" || k == "FireSaber_KEM" || k == "NTRU_HPS_4096_821" || k == "NTRU_HPS_4096_1229" || k == "NTRU_HRSS_1373" {
+				return 5
+			} else {
+				panic("Error when recovering NIST security level number.")
+			}
+		}
 	}
+}
 
+func main() {
+	flag.Parse()
+
+	clientMsg := "hello, server"
+
+	port := 4433
+
+	securityLevelNum := 1
+	securityLevelKauthNum := 1
 	var re *regexp.Regexp
 
 	//boxPlot data
@@ -99,6 +117,10 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
+
+			securityLevelNum = getSecurityLevel(k)
+
+			rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)
 
 			clientConfig := initClient(kexCurveID, intCACert, intCAPriv, rootCertX509)
 
@@ -161,27 +183,35 @@ func main() {
 
 				strport := fmt.Sprintf("%d", port)
 
-				// fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
-
 				kexCurveID, err := nameToCurveID(k)
 				if err != nil {
 					log.Fatal(err)
 				}
 
+				securityLevelNum = getSecurityLevel(k)
+
+				securityLevelKauthNum = getSecurityLevel(kAuth)
+
 				// auth in the same level
-				if reLevel1.MatchString(kAuth) && !reLevel1.MatchString(k) {
-					continue
-				}
-				if reLevel3.MatchString(kAuth) && !reLevel3.MatchString(k) {
-					continue
-				}
-				if reLevel5.MatchString(kAuth) && !reLevel5.MatchString(k) {
+				if securityLevelNum != securityLevelKauthNum {
 					continue
 				}
 
+				//only hybrids
+				if !reLevel1.MatchString(k) && !reLevel3.MatchString(k) && !reLevel5.MatchString(k) {
+					continue
+				}
+				if !reLevel1.MatchString(kAuth) && !reLevel3.MatchString(kAuth) && !reLevel5.MatchString(kAuth) {
+					continue
+				}
+
+				rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)
 				authSig := nameToHybridSigID(kAuth)
-
 				clientConfig := initClient(authSig, intCACert, intCAPriv, rootCertX509)
+
+				//				authSig := nameToHybridSigID(kAuth)
+
+				//				clientConfig := initClient(authSig, intCACert, intCAPriv, rootCertX509)
 
 				// Select here the algorithm to be used in the KEX
 				clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}

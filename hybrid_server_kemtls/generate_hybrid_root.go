@@ -72,8 +72,8 @@ func generateRoot(rootCAAlgo interface{}, curve elliptic.Curve) {
 	sigIDString := strconv.FormatInt(int64(priv.SigId), 16)
 
 	rootCAData := []string{sigIDString, curveString, hex.EncodeToString(oidBytes), hex.EncodeToString(rootPrivBytes), hex.EncodeToString(privPqc), hex.EncodeToString(classicPubBytes), hex.EncodeToString(pubPqc), hex.EncodeToString(rootCACertBytes)}
-
-	file, err := os.OpenFile("hybrid_root_ca.txt", os.O_CREATE|os.O_WRONLY, 0644)
+	fileName := "hybrid_root_ca_" + *rootAlgo + ".txt"
+	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}

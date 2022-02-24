@@ -1,9 +1,9 @@
 package main
 
-// Command to run:
-// go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go
+// Command to run: (similar as launch_client)
 
 import (
+	"crypto/liboqs_sig"
 	"crypto/tls"
 	"crypto/x509"
 	"flag"
@@ -21,25 +21,10 @@ func startServerHybrid(serverMsg string, serverConfig *tls.Config, ipserver stri
 	go testConnHybrid(serverMsg, serverMsg, serverConfig, serverConfig, "server", ipserver, port)
 }
 
-func launchServer() {
-	fmt.Println("Starting servers...")
-
-	flag.Parse()
-
-	port := 4433
-
-	keysKEX, keysAuth := sortAlgorithmsMap()
-
-	// want same levels for the algos
-	reLevel1 := regexp.MustCompile(`P256`)
-	reLevel3 := regexp.MustCompile(`P384`)
-	reLevel5 := regexp.MustCompile(`P521`)
-
-	var rootCertX509 *x509.Certificate
-	var rootPriv interface{}
+func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509.Certificate, rootPriv interface{}) {
 
 	if *hybridRoot {
-		rootCertX509, rootPriv = constructHybridRoot()
+		rootCertX509, rootPriv = constructHybridRoot(secNum)
 
 	} else {
 
@@ -56,10 +41,48 @@ func launchServer() {
 		rootPriv = tempRootCertTLS.PrivateKey
 	}
 
-	intSigAlgo := nameToHybridSigID(*intCAAlgo)
-
 	// Creating intermediate CA to sign the Server Certificate
-	intCACert, intCAPriv := initCAs(rootCertX509, rootPriv, intSigAlgo)
+	intCACert, intCAPriv := initCAs(rootCertX509, rootPriv, rootPriv.(*liboqs_sig.PrivateKey).SigId)
+
+	return rootCertX509, intCACert, intCAPriv
+}
+
+func getSecurityLevel(k string) (level int) {
+	// want same levels for the algos
+	reLevel1 := regexp.MustCompile(`P256`)
+	reLevel3 := regexp.MustCompile(`P384`)
+	reLevel5 := regexp.MustCompile(`P521`)
+
+	if reLevel1.MatchString(k) || k == "Kyber512" || k == "LightSaber_KEM" || k == "NTRU_HPS_2048_509" {
+		return 1
+	} else {
+		if reLevel3.MatchString(k) || k == "Kyber768" || k == "Saber_KEM" || k == "NTRU_HPS_2048_677" || k == "NTRU_HRSS_701" {
+			return 3
+		} else {
+			if reLevel5.MatchString(k) || k == "Kyber1024" || k == "FireSaber_KEM" || k == "NTRU_HPS_4096_821" || k == "NTRU_HPS_4096_1229" || k == "NTRU_HRSS_1373" {
+				return 5
+			} else {
+				panic("Error when recovering NIST security level number.")
+			}
+		}
+	}
+}
+
+func launchServer() {
+	fmt.Println("Starting servers...")
+
+	flag.Parse()
+
+	port := 4433
+
+	keysKEX, keysAuth := sortAlgorithmsMap()
+
+	reLevel1 := regexp.MustCompile(`P256`)
+	reLevel3 := regexp.MustCompile(`P384`)
+	reLevel5 := regexp.MustCompile(`P521`)
+
+	securityLevelNum := 1
+	securityLevelKauthNum := 1
 
 	if !*pqtls {
 		kemtlsInitCSVServer()
@@ -72,13 +95,11 @@ func launchServer() {
 				log.Fatal(err)
 			}
 
-			/* auth is the same here
-			authCurveID, err := nameToCurveID(*authAlgo)
-			if err != nil {
-				log.Fatal(err)
-			}*/
-
 			authCurveID := kexCurveID
+
+			securityLevelNum = getSecurityLevel(k)
+
+			rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)
 
 			serverConfig := initServer(authCurveID, intCACert, intCAPriv, rootCertX509)
 
@@ -108,19 +129,27 @@ func launchServer() {
 				if err != nil {
 					log.Fatal(err)
 				}
+				//fmt.Println(kAuth + " " + k)
+
+				securityLevelNum = getSecurityLevel(k)
+				securityLevelKauthNum = getSecurityLevel(kAuth)
 
 				// auth in the same level
-				if reLevel1.MatchString(kAuth) && !reLevel1.MatchString(k) {
+				if securityLevelNum != securityLevelKauthNum {
 					continue
 				}
-				if reLevel3.MatchString(kAuth) && !reLevel3.MatchString(k) {
+
+				//only hybrids
+				if !reLevel1.MatchString(k) && !reLevel3.MatchString(k) && !reLevel5.MatchString(k) {
 					continue
 				}
-				if reLevel5.MatchString(kAuth) && !reLevel5.MatchString(k) {
+				if !reLevel1.MatchString(kAuth) && !reLevel3.MatchString(kAuth) && !reLevel5.MatchString(kAuth) {
 					continue
 				}
 
 				authSigID := nameToHybridSigID(kAuth)
+
+				rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)
 
 				serverConfig := initServer(authSigID, intCACert, intCAPriv, rootCertX509)
 

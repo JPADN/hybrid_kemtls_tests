@@ -1,9 +1,9 @@
 package main
 
 import (
+	"crypto/liboqs_sig"
 	"crypto/x509"
 	"log"
-	"crypto/liboqs_sig"
 
 	// For readHybridRootFile
 	"bufio"
@@ -11,13 +11,13 @@ import (
 	"strconv"
 
 	// For Hybrid Root CA
-	"encoding/hex"
-	"encoding/asn1"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"encoding/asn1"
+	"encoding/hex"
 
-	"io"
 	"fmt"
+	"io"
 )
 
 // Development utility only
@@ -26,7 +26,7 @@ func countFileLines() {
 
 	file, err := os.Open("hybrid_root_ca.txt")
 	if err != nil {
-			log.Fatal(err)
+		log.Fatal(err)
 	}
 	defer file.Close()
 
@@ -37,42 +37,51 @@ func countFileLines() {
 	for {
 		if c, _, err := r.ReadRune(); err != nil {
 			if err == io.EOF {
-					break
+				break
 			} else {
-					log.Fatal(err)
+				log.Fatal(err)
 			}
-		} else {				
-			if string(c) == "\n"{
+		} else {
+			if string(c) == "\n" {
 				if count > max_count {
 					max_count = count
 				}
-				
-				count = 0					
-			
+
+				count = 0
+
 			} else {
 				count = count + 1
-			}				
+			}
 		}
 	}
 
 	fmt.Println(max_count)
 }
 
-
-func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
+func constructHybridRoot(securityLevel int) (*x509.Certificate, *liboqs_sig.PrivateKey) {
 
 	/* ------------------------------ Reading file ------------------------------ */
 	var rootData []string
-
+	var rootFileName string
 	// JP - TODO: Fix that if we change the directory for the hybrid root CA generation
-	file, err := os.Open("hybrid_root_ca.txt")
+	if securityLevel == 1 {
+		rootFileName = "hybrid_root_ca_P256_Dilithium2.txt"
+	} else {
+		if securityLevel == 3 {
+			rootFileName = "hybrid_root_ca_P384_Dilithium3.txt"
+		} else {
+			rootFileName = "hybrid_root_ca_P521_Dilithium5.txt"
+		}
+	}
+
+	file, err := os.Open(rootFileName)
 	if err != nil {
-			log.Fatal(err)
+		log.Fatal(err)
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	
+
 	// Resizing scanner's capacity due to P521_RainbowVClassic certificates
 	const maxCapacity = 3862673
 	buf := make([]byte, maxCapacity)
@@ -86,12 +95,11 @@ func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
 		log.Fatal(err)
 	}
 
-	
 	rootSigIDString := rootData[0]
-	
+
 	curve := rootData[1]
 	curve = curve
-	
+
 	oidBytesString := rootData[2]
 	rootPrivClassic := rootData[3]
 	rootPrivPqc := rootData[4]
@@ -100,7 +108,7 @@ func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
 	rootCACertString := rootData[7]
 
 	/* ---------------------------- Decoding Strings ---------------------------- */
-	
+
 	rootSigIDInt, err := strconv.ParseUint(rootSigIDString, 16, 16)
 	if err != nil {
 		panic(err)
@@ -124,13 +132,12 @@ func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
 	if err != nil {
 		panic(err)
 	}
-	
-	
+
 	oidBytes, err := hex.DecodeString(oidBytesString)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	namedCurveOID := new(asn1.ObjectIdentifier)
 	if _, err := asn1.Unmarshal(oidBytes, namedCurveOID); err != nil {
 		panic(err)
@@ -140,22 +147,21 @@ func constructHybridRoot() (*x509.Certificate, *liboqs_sig.PrivateKey) {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	/* --------------------------- Classic Pub Parsing -------------------------- */
 
 	classicPub := new(ecdsa.PublicKey)
-	classicPub.Curve, _ = liboqs_sig.ClassicFromSig(rootSigID) 
+	classicPub.Curve, _ = liboqs_sig.ClassicFromSig(rootSigID)
 
 	classicBytes, err := hex.DecodeString(rootPubClassic)
 	if err != nil {
 		panic(err)
 	}
 
-
-	classicPub.X, classicPub.Y =	elliptic.Unmarshal(classicPub.Curve, classicBytes)
+	classicPub.X, classicPub.Y = elliptic.Unmarshal(classicPub.Curve, classicBytes)
 	if classicPub.X == nil {
 		panic("error in unmarshal ecdsa public key")
-	}	
+	}
 
 	/* ------------------ Instantiating Public and Private Key ------------------ */
 
