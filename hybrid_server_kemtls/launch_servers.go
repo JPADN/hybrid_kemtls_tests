@@ -38,8 +38,6 @@ func launchServer() {
 	var rootCertX509 *x509.Certificate
 	var rootPriv interface{}
 
-	pqtlsInitCSVServer()
-
 	if *hybridRoot {
 		rootCertX509, rootPriv = constructHybridRoot()
 
@@ -64,6 +62,7 @@ func launchServer() {
 	intCACert, intCAPriv := initCAs(rootCertX509, rootPriv, intSigAlgo)
 
 	if !*pqtls {
+		kemtlsInitCSVServer()
 		//for each algo
 		for _, k := range keysKEX {
 			strport := fmt.Sprintf("%d", port)
@@ -98,6 +97,7 @@ func launchServer() {
 	} else {
 
 		i := 0
+		pqtlsInitCSVServer()
 
 		for _, kAuth := range keysAuth {
 

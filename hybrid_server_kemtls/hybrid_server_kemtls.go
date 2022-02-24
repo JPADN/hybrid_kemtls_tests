@@ -605,7 +605,9 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 	buf := make([]byte, bufLen)
 	if peer == "server" {
 		var timingsFullProtocol []float64
+		var timingsWriteServerHello []float64
 		var timingsWriteCertVerify []float64
+		var timingsReadKEMCiphertext []float64
 
 		countConnections := 0
 
@@ -613,9 +615,6 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		defer ln.Close()
 
 		for {
-
-			//			fmt.Println("Server Awaiting connection...")
-			//			fmt.Println(ln.Addr().String())
 
 			serverConn, err := ln.Accept()
 			if err != nil {
@@ -647,6 +646,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 
 				if server.ConnectionState().DidPQTLS {
 					timingsFullProtocol = append(timingsFullProtocol, float64(timingState.serverTimingInfo.FullProtocol)/float64(time.Millisecond))
+					timingsWriteServerHello = append(timingsWriteServerHello, float64(timingState.serverTimingInfo.WriteServerHello)/float64(time.Millisecond))
 					timingsWriteCertVerify = append(timingsWriteCertVerify, float64(timingState.serverTimingInfo.WriteCertificateVerify)/float64(time.Millisecond))
 
 					if countConnections == *handshakes {
@@ -660,12 +660,33 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 							fmt.Print("5 %v", err)
 						}
 						//kAuth := serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String()
-						pqtlsSaveCSVServer(timingsFullProtocol, timingsWriteCertVerify, kKEX, kAuth, countConnections)
+						pqtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsWriteCertVerify, kKEX, kAuth, countConnections)
 						countConnections = 0
 						timingsFullProtocol = nil
 						timingsWriteCertVerify = nil
+						timingsWriteServerHello = nil
 					}
 				}
+			} else {
+				if server.ConnectionState().DidKEMTLS {
+					timingsFullProtocol = append(timingsFullProtocol, float64(timingState.serverTimingInfo.FullProtocol)/float64(time.Millisecond))
+					timingsWriteServerHello = append(timingsWriteServerHello, float64(timingState.serverTimingInfo.WriteServerHello)/float64(time.Millisecond))
+					timingsReadKEMCiphertext = append(timingsReadKEMCiphertext, float64(timingState.serverTimingInfo.ReadKEMCiphertext)/float64(time.Millisecond))
+
+					if countConnections == *handshakes {
+						kKEX, e := CurveIDToName(serverConfig.CurvePreferences[0])
+						if e != nil {
+							fmt.Print("4 %v", err)
+						}
+
+						kemtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsReadKEMCiphertext, kKEX, countConnections)
+						countConnections = 0
+						timingsFullProtocol = nil
+						timingsReadKEMCiphertext = nil
+						timingsWriteServerHello = nil
+					}
+				}
+
 			}
 		}
 	}
