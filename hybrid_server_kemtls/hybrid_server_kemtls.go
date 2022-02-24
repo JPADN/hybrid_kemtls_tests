@@ -24,7 +24,8 @@ var (
 	authAlgo  = flag.String("auth", "Kyber512X25519", "Authentication Algorithm")
 	intCAAlgo = flag.String("intca", "P256_Dilithium2", "Intermediate CA Signature Algorithm")
 
-	IPserver   = flag.String("ip", "127.0.0.1", "IP of the KEMTLS Server")
+	IPserver   = flag.String("ip", "34.116.206.139", "IP of the KEMTLS/PQTLS Server")
+	IPclient   = flag.String("ipclient", "35.247.220.72", "IP of the KEMTLS/PQTLS Client Auth Certificate")
 	tlspeer    = flag.String("tlspeer", "server", "KEMTLS Peer: client or server")
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
 
@@ -345,7 +346,7 @@ func authIDToName(lID liboqs_sig.ID) (name string, e error) {
 	return "0", errors.New("ERROR: Auth Algorithm not found")
 }
 
-func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string, keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage) ([]byte, interface{}, error) {
+func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string, keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage, hostName string) ([]byte, interface{}, error) {
 
 	var _validFor time.Duration
 
@@ -355,7 +356,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		_validFor = 240 * time.Hour // 10 days
 	}
 
-	var _host string = "127.0.0.1" // 34.116.206.139
+	var _host string = hostName //"127.0.0.1" // 34.116.206.139 server //  35.247.220.72 client
 	var commonName string
 
 	var pub, priv interface{}
@@ -451,7 +452,7 @@ func initCAs(rootCACert *x509.Certificate, rootCAPriv, intCAAlgo interface{}) (*
 
 	intKeyUsage := x509.KeyUsageCertSign
 
-	intCACertBytes, intCAPriv, err := createCertificate(intCAAlgo, rootCACert, rootCAPriv, true, false, "server", intKeyUsage, nil)
+	intCACertBytes, intCAPriv, err := createCertificate(intCAAlgo, rootCACert, rootCAPriv, true, false, "server", intKeyUsage, nil, "127.0.0.1")
 	if err != nil {
 		panic(err)
 	}
@@ -490,7 +491,7 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 
 	serverExtKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 
-	certBytes, certPriv, err := createCertificate(certAlgo, intCACert, intCAPriv, false, false, "server", serverKeyUsage, serverExtKeyUsage)
+	certBytes, certPriv, err := createCertificate(certAlgo, intCACert, intCAPriv, false, false, "server", serverKeyUsage, serverExtKeyUsage, *IPserver)
 	if err != nil {
 		panic(err)
 	}
@@ -543,7 +544,7 @@ func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 
 		clientExtKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
 
-		certBytes, certPriv, err := createCertificate(certAlgo, intCACert, intCAPriv, false, false, "client", clientKeyUsage, clientExtKeyUsage)
+		certBytes, certPriv, err := createCertificate(certAlgo, intCACert, intCAPriv, false, false, "client", clientKeyUsage, clientExtKeyUsage, *IPclient)
 		if err != nil {
 			panic(err)
 		}
