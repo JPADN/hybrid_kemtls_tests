@@ -4,8 +4,8 @@ package main
 // go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go
 
 import (
-	"crypto/tls"	
-	"crypto/x509"	
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"log"
@@ -34,13 +34,15 @@ func launchServer() {
 	reLevel1 := regexp.MustCompile(`P256`)
 	reLevel3 := regexp.MustCompile(`P384`)
 	reLevel5 := regexp.MustCompile(`P521`)
-	
+
 	var rootCertX509 *x509.Certificate
 	var rootPriv interface{}
 
+	pqtlsInitCSVServer()
+
 	if *hybridRoot {
 		rootCertX509, rootPriv = constructHybridRoot()
-	
+
 	} else {
 
 		tempRootCertTLS, err := tls.X509KeyPair([]byte(rootCert), []byte(rootKey))
@@ -56,7 +58,6 @@ func launchServer() {
 		rootPriv = tempRootCertTLS.PrivateKey
 	}
 
-	
 	intSigAlgo := nameToHybridSigID(*intCAAlgo)
 
 	// Creating intermediate CA to sign the Server Certificate
@@ -66,12 +67,12 @@ func launchServer() {
 		//for each algo
 		for _, k := range keysKEX {
 			strport := fmt.Sprintf("%d", port)
-			
+
 			kexCurveID, err := nameToCurveID(k)
 			if err != nil {
 				log.Fatal(err)
 			}
-			
+
 			/* auth is the same here
 			authCurveID, err := nameToCurveID(*authAlgo)
 			if err != nil {
@@ -81,7 +82,7 @@ func launchServer() {
 			authCurveID := kexCurveID
 
 			serverConfig := initServer(authCurveID, intCACert, intCAPriv, rootCertX509)
-			
+
 			// Select here the algorithm to be used in the KEX
 			serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
@@ -93,8 +94,8 @@ func launchServer() {
 			startServerHybrid(serverMsg, serverConfig, *IPserver, strport)
 
 			port++
-		}	
-	}	else {
+		}
+	} else {
 
 		i := 0
 
@@ -102,7 +103,7 @@ func launchServer() {
 
 			for _, k := range keysKEX {
 				strport := fmt.Sprintf("%d", port)
-				
+
 				kexCurveID, err := nameToCurveID(k)
 				if err != nil {
 					log.Fatal(err)
@@ -118,11 +119,11 @@ func launchServer() {
 				if reLevel5.MatchString(kAuth) && !reLevel5.MatchString(k) {
 					continue
 				}
-				
+
 				authSigID := nameToHybridSigID(kAuth)
 
 				serverConfig := initServer(authSigID, intCACert, intCAPriv, rootCertX509)
-			
+
 				// Select here the algorithm to be used in the KEX
 				serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
@@ -137,12 +138,11 @@ func launchServer() {
 				port++
 				i++
 			}
-		}	
+		}
 	}
 
 	wg.Wait() //endless but required
 }
-	
 
 func main() {
 	launchServer()

@@ -350,9 +350,9 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	var _validFor time.Duration
 
 	if isCA {
-		_validFor = 8760 * time.Hour  // 1 year
+		_validFor = 8760 * time.Hour // 1 year
 	} else {
-		_validFor = 240 * time.Hour  // 10 days
+		_validFor = 240 * time.Hour // 10 days
 	}
 
 	var _host string = "127.0.0.1" // 34.116.206.139
@@ -606,12 +606,12 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 	if peer == "server" {
 		var timingsFullProtocol []float64
 		var timingsWriteCertVerify []float64
-		
+
 		countConnections := 0
 
 		ln := newLocalListener(ipserver, port)
 		defer ln.Close()
-		
+
 		for {
 
 			//			fmt.Println("Server Awaiting connection...")
@@ -645,36 +645,25 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 
 			if *pqtls {
 
-				pqtlsInitCSVServer()
-
-				//I need only the signing cost
-				fmt.Println("   Server (" + port + ")")
-				fmt.Printf("<--| Write Server Cert Verify %v \n", timingState.serverTimingInfo.WriteCertificateVerify)
-
 				if server.ConnectionState().DidPQTLS {
-					/*if server.ConnectionState().DidPQTLS {
-						fmt.Println("Server Success using PQtls")
-					}*/
 					timingsFullProtocol = append(timingsFullProtocol, float64(timingState.serverTimingInfo.FullProtocol)/float64(time.Millisecond))
 					timingsWriteCertVerify = append(timingsWriteCertVerify, float64(timingState.serverTimingInfo.WriteCertificateVerify)/float64(time.Millisecond))
 
-					if countConnections >= 2 {
+					if countConnections == *handshakes {
 						kKEX, e := CurveIDToName(serverConfig.CurvePreferences[0])
 						if e != nil {
 							fmt.Print("4 %v", err)
 						}
-						//I grab PQTLS as the algorithm
-						//kAuth, e := authIDToName(liboqs_sig.ID(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm))
-						/*if e != nil {
+						priv, _ := serverConfig.Certificates[0].PrivateKey.(*liboqs_sig.PrivateKey)
+						kAuth, err := authIDToName(priv.SigId)
+						if e != nil {
 							fmt.Print("5 %v", err)
-							fmt.Println(serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String())
-						}*/
-						kAuth := serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String()
+						}
+						//kAuth := serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String()
 						pqtlsSaveCSVServer(timingsFullProtocol, timingsWriteCertVerify, kKEX, kAuth, countConnections)
 						countConnections = 0
 						timingsFullProtocol = nil
 						timingsWriteCertVerify = nil
-						fmt.Println()
 					}
 				}
 			}
