@@ -356,6 +356,11 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		_validFor = 240 * time.Hour // 10 days
 	}
 
+	//fix for testing remotely.
+	if hostName == "0.0.0.0" {
+		hostName = "34.116.206.139"
+	}
+
 	var _host string = hostName //"127.0.0.1" // 34.116.206.139 server //  35.247.220.72 client
 	var commonName string
 
