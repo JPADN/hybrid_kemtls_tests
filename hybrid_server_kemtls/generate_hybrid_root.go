@@ -22,7 +22,7 @@ func generateRoot(rootCAAlgo interface{}, curve elliptic.Curve) {
 
 	rootKeyUsage := x509.KeyUsageCertSign
 
-	rootCACertBytes, rootCAPriv, err := createCertificate(rootCAAlgo, nil, nil, true, true, "server", rootKeyUsage, nil)
+	rootCACertBytes, rootCAPriv, err := createCertificate(rootCAAlgo, nil, nil, true, true, "server", rootKeyUsage, nil, "127.0.0.1")
 	if err != nil {
 		panic(err)
 	}
