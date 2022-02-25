@@ -20,13 +20,10 @@ import (
 )
 
 var (
-	kexAlgo   = flag.String("kex", "Kyber512X25519", "KEX Algorithm")
-	authAlgo  = flag.String("auth", "Kyber512X25519", "Authentication Algorithm")
 	intCAAlgo = flag.String("intca", "P256_Dilithium2", "Intermediate CA Signature Algorithm")
 
-	IPserver   = flag.String("ip", "34.116.206.139", "IP of the KEMTLS/PQTLS Server")
+	IPserver   = flag.String("ipserver", "34.116.206.139", "IP of the KEMTLS/PQTLS Server")
 	IPclient   = flag.String("ipclient", "35.247.220.72", "IP of the KEMTLS/PQTLS Client Auth Certificate")
-	tlspeer    = flag.String("tlspeer", "server", "KEMTLS Peer: client or server")
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
 
 	clientAuth = flag.Bool("clientauth", false, "Client authentication")

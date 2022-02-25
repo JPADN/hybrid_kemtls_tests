@@ -137,7 +137,7 @@ func main() {
 			var timingsWriteKEMCiphertext []float64
 
 			for i := 0; i < *handshakes; i++ {
-				timingState, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
+				timingState, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPclient, strport)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -209,10 +209,6 @@ func main() {
 				authSig := nameToHybridSigID(kAuth)
 				clientConfig := initClient(authSig, intCACert, intCAPriv, rootCertX509)
 
-				//				authSig := nameToHybridSigID(kAuth)
-
-				//				clientConfig := initClient(authSig, intCACert, intCAPriv, rootCertX509)
-
 				// Select here the algorithm to be used in the KEX
 				clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
@@ -225,7 +221,7 @@ func main() {
 				//var timingsWriteKEMCiphertext []float64
 
 				for i := 0; i < *handshakes; i++ {
-					timingState, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
+					timingState, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPclient, strport)
 					if err != nil {
 						log.Fatal(err)
 					}
