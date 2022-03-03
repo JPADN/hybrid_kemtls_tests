@@ -30,6 +30,8 @@ var (
 
 	pqtls      = flag.Bool("pqtls", false, "PQTLS")
 	hybridRoot = flag.Bool("hybridroot", true, "Root CA with hybrid algorithm")
+
+	cachedCert = flag.Bool("cachedCert", false, "KEMTLS PDK or PQTLS(cached) server cert.")
 )
 
 var (
@@ -597,7 +599,7 @@ func (ti *timingInfo) eventHandler(event tls.CFEvent) {
 	}
 }
 
-func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls.Config, peer string, ipserver string, port string) (timingState timingInfo, isDC bool, err error) {
+func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls.Config, peer string, ipserver string, port string) (timingState timingInfo, isDC bool, cconnState tls.ConnectionState, err error) {
 	clientConfig.CFEventHandler = timingState.eventHandler
 	serverConfig.CFEventHandler = timingState.eventHandler
 
@@ -777,5 +779,5 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		}
 	}
 
-	return timingState, true, nil
+	return timingState, true, cconnState, nil
 }
