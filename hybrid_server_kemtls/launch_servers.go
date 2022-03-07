@@ -3,9 +3,7 @@ package main
 // Command to run: (similar as launch_client)
 
 import (
-	"crypto/liboqs_sig"
 	"crypto/tls"
-	"crypto/x509"
 	"flag"
 	"fmt"
 	"log"
@@ -23,53 +21,6 @@ func startServerHybrid(serverMsg string, serverConfig *tls.Config, ipserver stri
 		go testConnHybrid(serverMsg, serverMsg, serverConfig, serverConfig, "server", ipserver, port)
 	}
 	
-}
-
-func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509.Certificate, rootPriv interface{}) {
-
-	if *hybridRoot {
-		rootCertX509, rootPriv = constructHybridRoot(secNum)
-
-	} else {
-
-		tempRootCertTLS, err := tls.X509KeyPair([]byte(rootCert), []byte(rootKey))
-		if err != nil {
-			panic(err)
-		}
-
-		rootCertX509, err = x509.ParseCertificate(tempRootCertTLS.Certificate[0])
-		if err != nil {
-			panic(err)
-		}
-
-		rootPriv = tempRootCertTLS.PrivateKey
-	}
-
-	// Creating intermediate CA to sign the Server Certificate
-	intCACert, intCAPriv := initCAs(rootCertX509, rootPriv, rootPriv.(*liboqs_sig.PrivateKey).SigId)
-
-	return rootCertX509, intCACert, intCAPriv
-}
-
-func getSecurityLevel(k string) (level int) {
-	// want same levels for the algos
-	reLevel1 := regexp.MustCompile(`P256`)
-	reLevel3 := regexp.MustCompile(`P384`)
-	reLevel5 := regexp.MustCompile(`P521`)
-
-	if reLevel1.MatchString(k) || k == "Kyber512" || k == "LightSaber_KEM" || k == "NTRU_HPS_2048_509" {
-		return 1
-	} else {
-		if reLevel3.MatchString(k) || k == "Kyber768" || k == "Saber_KEM" || k == "NTRU_HPS_2048_677" || k == "NTRU_HRSS_701" {
-			return 3
-		} else {
-			if reLevel5.MatchString(k) || k == "Kyber1024" || k == "FireSaber_KEM" || k == "NTRU_HPS_4096_821" || k == "NTRU_HPS_4096_1229" || k == "NTRU_HRSS_1373" {
-				return 5
-			} else {
-				panic("Error when recovering NIST security level number.")
-			}
-		}
-	}
 }
 
 func launchServer() {
