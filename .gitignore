@@ -1,4 +1,16 @@
 go.mod
 *.csv
 *.pem
-hybrid_root_ca.txt
+*.txt
+temp_client/
+temp_server/
+clean.sh
+debug.sh
+*.crt
+*.key
+client.sh
+config.sh
+server.sh
+launch.json
+process_root/
+generate_root/
