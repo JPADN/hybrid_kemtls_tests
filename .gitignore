@@ -11,6 +11,6 @@ debug.sh
 client.sh
 config.sh
 server.sh
-launch.json
+.vscode/
 process_root/
 generate_root/
