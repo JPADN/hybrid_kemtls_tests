@@ -303,6 +303,53 @@ func sortAlgorithmsMap() (KEXkeys []string, Authkeys []string) {
 	return outputKEX, outputAuth
 }
 
+func initClientAndAuth(k, kAuth string) (*tls.Config, error) {  // if PQTLS
+	var clientConfig *tls.Config
+	
+	kexCurveID, err := nameToCurveID(k)
+	if err != nil {
+		return nil, err
+	}	
+	
+	securityLevelNum := getSecurityLevel(k)
+	
+	rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)	
+
+	if *pqtls {
+		var reLevel1, reLevel3, reLevel5 *regexp.Regexp
+
+		//want same levels for the algos
+		reLevel1 = regexp.MustCompile(`P256`)
+		reLevel3 = regexp.MustCompile(`P384`)
+		reLevel5 = regexp.MustCompile(`P521`)
+				
+		securityLevelKauthNum := getSecurityLevel(kAuth)
+
+		// auth in the same level
+		if securityLevelNum != securityLevelKauthNum {
+			return nil, errors.New("KEX algorithm security level does not match Authentication algorithm security level")
+		}
+
+		//only hybrids
+		if !reLevel1.MatchString(k) && !reLevel3.MatchString(k) && !reLevel5.MatchString(k) {
+			return nil, errors.New("Malformed KEX algorithm name")
+		}
+		if !reLevel1.MatchString(kAuth) && !reLevel3.MatchString(kAuth) && !reLevel5.MatchString(kAuth) {
+			return nil, errors.New("Malformed Authentication algorithm name")
+		}
+
+		authSig := nameToHybridSigID(kAuth)
+		clientConfig = initClient(authSig, intCACert, intCAPriv, rootCertX509)
+	} else {
+		clientConfig = initClient(kexCurveID, intCACert, intCAPriv, rootCertX509)
+	}
+
+	// Select here the algorithm to be used in the KEX
+	clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
+
+	return clientConfig, nil
+}
+
 func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509.Certificate, rootPriv interface{}) {
 
 	if *hybridRoot {

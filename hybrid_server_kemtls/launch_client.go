@@ -5,7 +5,6 @@ package main
 
 import (
 	"crypto/kem"
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
@@ -22,9 +21,7 @@ func main() {
 	clientMsg := "hello, server"
 
 	port := 4433
-
-	securityLevelNum := 1
-	securityLevelKauthNum := 1
+	
 	var re *regexp.Regexp
 
 	//boxPlot data
@@ -46,14 +43,6 @@ func main() {
 
 	keysKEX, keysAuth := sortAlgorithmsMap()
 
-	var reLevel1, reLevel3, reLevel5 *regexp.Regexp
-	if *pqtls {
-		//want same levels for the algos
-		reLevel1 = regexp.MustCompile(`P256`)
-		reLevel3 = regexp.MustCompile(`P384`)
-		reLevel5 = regexp.MustCompile(`P521`)
-	}
-
 	if !*pqtls {
 
 		// struct for the metrics
@@ -67,23 +56,14 @@ func main() {
 			strport := fmt.Sprintf("%d", port)
 			fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
 
-			kexCurveID, err := nameToCurveID(k)
+			clientConfig, err := initClientAndAuth(k, "")
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			securityLevelNum = getSecurityLevel(k)
-
-			rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)
-
-			clientConfig := initClient(kexCurveID, intCACert, intCAPriv, rootCertX509)
-
-			// Select here the algorithm to be used in the KEX
-			clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
-
 			fmt.Printf("Starting KEMTLS Handshakes: KEX Algorithm: %s (0x%x) - Auth Algorithm: %s (0x%x)\n",
-				k, kem.ID(kexCurveID),
-				k, kem.ID(kexCurveID)) //note: removed 'authCurveID'
+				k, kem.ID(clientConfig.CurvePreferences[0]),
+				k, kem.ID(clientConfig.CurvePreferences[0]))
 
 			var timingsFullProtocol []float64
 			var timingsProcessServerHello []float64
@@ -146,34 +126,10 @@ func main() {
 
 				strport := fmt.Sprintf("%d", port)
 
-				kexCurveID, err := nameToCurveID(k)
+				clientConfig, err := initClientAndAuth(k, kAuth)
 				if err != nil {
 					log.Fatal(err)
 				}
-
-				securityLevelNum = getSecurityLevel(k)
-
-				securityLevelKauthNum = getSecurityLevel(kAuth)
-
-				// auth in the same level
-				if securityLevelNum != securityLevelKauthNum {
-					continue
-				}
-
-				//only hybrids
-				if !reLevel1.MatchString(k) && !reLevel3.MatchString(k) && !reLevel5.MatchString(k) {
-					continue
-				}
-				if !reLevel1.MatchString(kAuth) && !reLevel3.MatchString(kAuth) && !reLevel5.MatchString(kAuth) {
-					continue
-				}
-
-				rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)
-				authSig := nameToHybridSigID(kAuth)
-				clientConfig := initClient(authSig, intCACert, intCAPriv, rootCertX509)
-
-				// Select here the algorithm to be used in the KEX
-				clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
 				fmt.Printf("Starting PQTLS Handshakes: KEX Algorithm: %s - Auth Algorithm: %s \n",
 					k, kAuth) //note: removed 'authCurveID'
