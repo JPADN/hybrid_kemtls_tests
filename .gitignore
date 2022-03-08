@@ -8,9 +8,6 @@ clean.sh
 debug.sh
 *.crt
 *.key
-client.sh
-config.sh
-server.sh
 .vscode/
 process_root/
 generate_root/
