@@ -248,6 +248,9 @@ func NewConfiguration() *Configuration {
 	if err != nil {
 		log.Fatalf("Error in initClientAndAuth: ", err)
 	}
+	if configuration.myClient.TLSConfig == nil {
+		log.Fatal("Error in initClientAndAuth: result config is nil")
+	}
 	/* ----------------------------------- End ---------------------------------- */
 	return configuration
 }

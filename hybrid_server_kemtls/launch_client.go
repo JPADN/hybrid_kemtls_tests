@@ -60,6 +60,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
+			if clientConfig == nil {
+				continue
+			}
 
 			fmt.Printf("Starting KEMTLS Handshakes: KEX Algorithm: %s (0x%x) - Auth Algorithm: %s (0x%x)\n",
 				k, kem.ID(clientConfig.CurvePreferences[0]),
@@ -129,6 +132,9 @@ func main() {
 				clientConfig, err := initClientAndAuth(k, kAuth)
 				if err != nil {
 					log.Fatal(err)
+				}
+				if clientConfig == nil {
+					continue
 				}
 
 				fmt.Printf("Starting PQTLS Handshakes: KEX Algorithm: %s - Auth Algorithm: %s \n",

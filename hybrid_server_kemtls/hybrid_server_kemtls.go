@@ -328,15 +328,15 @@ func initClientAndAuth(k, kAuth string) (*tls.Config, error) {  // if PQTLS
 
 		// auth in the same level
 		if securityLevelNum != securityLevelKauthNum {
-			return nil, errors.New("KEX algorithm security level does not match Authentication algorithm security level")
+			return nil, nil
 		}
 
 		//only hybrids
 		if !reLevel1.MatchString(k) && !reLevel3.MatchString(k) && !reLevel5.MatchString(k) {
-			return nil, errors.New("Malformed KEX algorithm name")
+			return nil, nil
 		}
 		if !reLevel1.MatchString(kAuth) && !reLevel3.MatchString(kAuth) && !reLevel5.MatchString(kAuth) {
-			return nil, errors.New("Malformed Authentication algorithm name")
+			return nil, nil
 		}
 
 		authSig := nameToHybridSigID(kAuth)
