@@ -34,6 +34,7 @@ var (
 	hybridRoot = flag.Bool("hybridroot", true, "Root CA with hybrid algorithm")
 
 	cachedCert = flag.Bool("cachedCert", false, "KEMTLS PDK or PQTLS(cached) server cert.")
+	isHTTP = flag.Bool("http", false, "HTTP server")
 )
 
 var (

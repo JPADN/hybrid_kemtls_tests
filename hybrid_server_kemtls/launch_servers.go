@@ -14,8 +14,8 @@ import (
 var wg sync.WaitGroup
 
 // wrapper function to start a server in each port
-func startServerHybrid(serverMsg string, serverConfig *tls.Config, ipserver string, port string, isHTTP bool) {	
-	if isHTTP {
+func startServerHybrid(serverMsg string, serverConfig *tls.Config, ipserver string, port string) {	
+	if *isHTTP {
 		httpServer(serverConfig, port)
 	} else {
 		go testConnHybrid(serverMsg, serverMsg, serverConfig, serverConfig, "server", ipserver, port)
@@ -66,7 +66,7 @@ func launchServer() {
 			wg.Add(1)
 			//start
 			fmt.Println("Starting " + k + " Hybrid KEMTLS server at " + *IPserver + ":" + strport + "...")
-			startServerHybrid(serverMsg, serverConfig, *IPserver, strport, true)
+			startServerHybrid(serverMsg, serverConfig, *IPserver, strport)
 
 			port++
 		}
@@ -117,7 +117,7 @@ func launchServer() {
 				//start
 				fmt.Println(fmt.Sprintf("%v", i) + " Starting " + k + " Hybrid PQTLS " + kAuth + " server at " + *IPserver + ":" + strport + "...")
 
-				startServerHybrid(serverMsg, serverConfig, *IPserver, strport, true)
+				startServerHybrid(serverMsg, serverConfig, *IPserver, strport)
 
 				port++
 				i++
