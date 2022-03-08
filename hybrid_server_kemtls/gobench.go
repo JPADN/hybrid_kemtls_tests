@@ -32,6 +32,13 @@ var (
 	authHeader       string
 )
 
+/* -------------------------------- Modified -------------------------------- */
+var (
+	kexAlgo = flag.String("kex", "P256_Kyber512", "Kex algorithm")
+	authAlgo = flag.String("authalgo", "P256_Dilithium2", "Authentication algorithm")
+)
+/* ----------------------------------- End ---------------------------------- */
+
 type Configuration struct {
 	urls       []string
 	method     string
@@ -234,6 +241,14 @@ func NewConfiguration() *Configuration {
 
 	configuration.myClient.Dial = MyDialer()
 
+	/* -------------------------------- Modified -------------------------------- */
+	var err error
+	
+	configuration.myClient.TLSConfig, err = initClientAndAuth(*kexAlgo, *authAlgo)	
+	if err != nil {
+		log.Fatalf("Error in initClientAndAuth: ", err)
+	}
+	/* ----------------------------------- End ---------------------------------- */
 	return configuration
 }
 
