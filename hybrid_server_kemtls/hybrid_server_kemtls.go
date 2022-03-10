@@ -26,6 +26,7 @@ import (
 var (
 	rootCert = flag.String("rootcert", "", "Root CA Certificate PEM file")
 	rootKey = flag.String("rootkey", "", "Root CA Private Key PEM file")
+	hybridRootAlgo = flag.String("hybridrootalgo", "", "Hybrid Root CA Algorithm name")
 	IPserver   = flag.String("ipserver", "34.116.206.139", "IP of the KEMTLS/PQTLS Server")
 	IPclient   = flag.String("ipclient", "35.247.220.72", "IP of the KEMTLS/PQTLS Client Auth Certificate")
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
@@ -148,7 +149,7 @@ func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509
 	var intCAAlgo interface{}
 
 	if *hybridRoot {
-		rootCertX509, rootPriv = constructHybridRoot(secNum)
+		rootCertX509, rootPriv = constructHybridRoot(*hybridRootAlgo, secNum)
 
 		intCAAlgo = rootPriv.(*liboqs_sig.PrivateKey).SigId
 	} else {

@@ -76,7 +76,7 @@ func generateHybridRoot(rootCAAlgo interface{}, curve elliptic.Curve) {
 	sigIDString := strconv.FormatInt(int64(priv.SigId), 16)
 
 	rootCAData := []string{sigIDString, curveString, hex.EncodeToString(oidBytes), hex.EncodeToString(rootPrivBytes), hex.EncodeToString(privPqc), hex.EncodeToString(classicPubBytes), hex.EncodeToString(pubPqc), hex.EncodeToString(rootCACertBytes)}
-	fileName := "hybrid_root_ca_" + *rootAlgo + ".txt"
+	fileName := "root_ca/hybrid_root_ca_" + *rootAlgo + ".txt"
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
@@ -102,8 +102,8 @@ func generateClassicRoot(rootCACurve elliptic.Curve) {
 
 	// Writing certificate to PEM file
 
-	certFileName := "root_cert_" + *rootAlgo + ".pem"
-	keyFileName := "root_key_" + *rootAlgo + ".pem"
+	certFileName := "root_ca/root_cert_" + *rootAlgo + ".pem"
+	keyFileName := "root_ca/root_key_" + *rootAlgo + ".pem"
 
 	certOut, err := os.Create(certFileName)
 	if err != nil {
@@ -115,7 +115,6 @@ func generateClassicRoot(rootCACurve elliptic.Curve) {
 	if err := certOut.Close(); err != nil {
 		log.Fatalf("Error closing cert.pem: %v", err)
 	}
-	log.Print("wrote cert.pem\n")
 
 	keyOut, err := os.OpenFile(keyFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
@@ -132,7 +131,6 @@ func generateClassicRoot(rootCACurve elliptic.Curve) {
 	if err := keyOut.Close(); err != nil {
 		log.Fatalf("Error closing key.pem: %v", err)
 	}
-	log.Print("wrote key.pem\n")
 }
 
 func main() {

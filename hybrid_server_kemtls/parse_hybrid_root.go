@@ -16,6 +16,7 @@ import (
 	"encoding/asn1"
 	"encoding/hex"
 
+	"regexp"
 	"fmt"
 	"io"
 )
@@ -58,21 +59,24 @@ func countFileLines() {
 	fmt.Println(max_count)
 }
 
-func constructHybridRoot(securityLevel int) (*x509.Certificate, *liboqs_sig.PrivateKey) {
+func constructHybridRoot(rootAlgo string, securityLevel int) (*x509.Certificate, *liboqs_sig.PrivateKey) {
 
 	/* ------------------------------ Reading file ------------------------------ */
 	var rootData []string
 	var rootFileName string
-	// JP - TODO: Fix that if we change the directory for the hybrid root CA generation
-	if securityLevel == 1 {
-		rootFileName = "hybrid_root_ca_P256_Dilithium2.txt"
-	} else {
-		if securityLevel == 3 {
-			rootFileName = "hybrid_root_ca_P384_Dilithium3.txt"
-		} else {
-			rootFileName = "hybrid_root_ca_P521_Dilithium5.txt"
-		}
+
+	reLevel1 := regexp.MustCompile(`P256`)
+	reLevel3 := regexp.MustCompile(`P384`)
+	reLevel5 := regexp.MustCompile(`P521`)
+
+	
+	if !((securityLevel == 1 && reLevel1.MatchString(rootAlgo)) || 
+	   	 (securityLevel == 3 && reLevel3.MatchString(rootAlgo)) ||
+		 	 (securityLevel == 5 && reLevel5.MatchString(rootAlgo))) {
+		panic("Root CA algorithm does not match the security level of the server certificate")
 	}
+
+	rootFileName = "root_ca/hybrid_root_ca_" + rootAlgo + ".txt"
 
 	file, err := os.Open(rootFileName)
 	if err != nil {
