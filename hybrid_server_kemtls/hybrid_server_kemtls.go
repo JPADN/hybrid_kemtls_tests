@@ -2,7 +2,6 @@ package main
 
 import (
 	"circl/sign"
-	circlSchemes "circl/sign/schemes"
 	"crypto/elliptic"
 	"crypto/ecdsa"
 	"crypto/kem"
@@ -45,6 +44,7 @@ var (
 
 	// Liboqs
 	hsKEXAlgorithms = map[string]tls.CurveID{
+		"P256": tls.CurveP256, "P384": tls.CurveP384, "P521": tls.CurveP256,
 		"Kyber512": tls.OQS_Kyber512, "P256_Kyber512": tls.P256_Kyber512,
 		"Kyber768": tls.OQS_Kyber768, "P384_Kyber768": tls.P384_Kyber768,
 		"Kyber1024": tls.OQS_Kyber1024, "P521_Kyber1024": tls.P521_Kyber1024,
@@ -60,9 +60,13 @@ var (
 	}
 
 	hsHybridAuthAlgorithms = map[string]liboqs_sig.ID{
-		"P256_Dilithium2": liboqs_sig.P256_Dilithium2, "P256_Falcon512": liboqs_sig.P256_Falcon512, "P256_RainbowIClassic": liboqs_sig.P256_RainbowIClassic,
-		"P384_Dilithium3": liboqs_sig.P384_Dilithium3, "P384_RainbowIIIClassic": liboqs_sig.P384_RainbowIIIClassic,
-		"P521_Dilithium5": liboqs_sig.P521_Dilithium5, "P521_Falcon1024": liboqs_sig.P521_Falcon1024, "P521_RainbowVClassic": liboqs_sig.P521_RainbowVClassic,
+		"P256_Dilithium2": liboqs_sig.P256_Dilithium2, "P256_Falcon512": liboqs_sig.P256_Falcon512,
+		"P384_Dilithium3": liboqs_sig.P384_Dilithium3,
+		"P521_Dilithium5": liboqs_sig.P521_Dilithium5, "P521_Falcon1024": liboqs_sig.P521_Falcon1024,
+	}
+
+	hsClassicAuthAlgorithms = map[string]elliptic.Curve{
+		"P256": elliptic.P256(), "P384": elliptic.P384(), "P521": elliptic.P521(),
 	}
 )
 
@@ -206,16 +210,19 @@ func nameToCurveID(name string) (tls.CurveID, error) {
 }
 
 func nameToHybridSigID(name string) interface{} {
-	sigId, prs := hsHybridAuthAlgorithms[name]
+	var sigId interface{}
+	var prs bool
+	
+	sigId, prs = hsHybridAuthAlgorithms[name]
 	if prs {
 		return sigId
 	}
 
-	intCAScheme := circlSchemes.ByName(name) // or Ed25519-Dilithium3
-	if intCAScheme != nil {
-		return intCAScheme
+	sigId, prs = hsClassicAuthAlgorithms[name]
+	if prs {
+		return sigId
 	}
-
+	
 	panic("Algorithm not found")
 }
 
