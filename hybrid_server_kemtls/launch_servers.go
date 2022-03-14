@@ -30,7 +30,14 @@ func launchServer() {
 
 	port := 4433
 
-	keysKEX, keysAuth := sortAlgorithmsMap()
+	var keysKEX, keysAuth []string
+
+	if *isHTTP {
+		keysKEX = *kex
+		keysAuth = *auth
+	} else {
+		keysKEX, keysAuth = sortAlgorithmsMap()
+	}
 
 	reLevel1 := regexp.MustCompile(`P256`)
 	reLevel3 := regexp.MustCompile(`P384`)

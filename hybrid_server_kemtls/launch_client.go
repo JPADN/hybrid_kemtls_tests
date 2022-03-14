@@ -74,7 +74,7 @@ func main() {
 			var timingsWriteKEMCiphertext []float64
 
 			if *cachedCert {
-				_, _, connState, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPclient, strport)
+				_, _, connState, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
 				if err != nil {
 					fmt.Println("Error establishing first connection for PDK mode:")
 					log.Fatal(err)
@@ -83,7 +83,7 @@ func main() {
 			}
 
 			for i := 0; i < *handshakes; i++ {
-				timingState, _, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPclient, strport)
+				timingState, _, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -146,7 +146,7 @@ func main() {
 				//var timingsWriteKEMCiphertext []float64
 
 				if *cachedCert {
-					_, _, connState, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPclient, strport)
+					_, _, connState, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
 					if err != nil {
 						fmt.Println("Error establishing first connection for PQTLS (cached) mode:")
 						log.Fatal(err)
@@ -155,7 +155,7 @@ func main() {
 				}
 
 				for i := 0; i < *handshakes; i++ {
-					timingState, _, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPclient, strport)
+					timingState, _, _, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
 					if err != nil {
 						log.Fatal(err)
 					}

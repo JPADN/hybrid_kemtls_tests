@@ -34,8 +34,8 @@ var (
 
 /* -------------------------------- Modified -------------------------------- */
 var (
-	kexAlgo = flag.String("kex", "P256_Kyber512", "Kex algorithm")
-	authAlgo = flag.String("authalgo", "P256_Dilithium2", "Authentication algorithm")
+	kexAlgo = flag.String("benchkex", "P256_Kyber512", "Kex algorithm")
+	authAlgo = flag.String("benchauth", "P256_Dilithium2", "Authentication algorithm")
 )
 /* ----------------------------------- End ---------------------------------- */
 

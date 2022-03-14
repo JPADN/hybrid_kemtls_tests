@@ -23,15 +23,16 @@ import (
 )
 
 var (
-	rootCert = flag.String("rootcert", "", "Root CA Certificate PEM file")
-	rootKey = flag.String("rootkey", "", "Root CA Private Key PEM file")
-	hybridRootAlgo = flag.String("hybridrootalgo", "", "Hybrid Root CA Algorithm name")
-	IPserver   = flag.String("ipserver", "34.116.206.139", "IP of the KEMTLS/PQTLS Server")
-	IPclient   = flag.String("ipclient", "35.247.220.72", "IP of the KEMTLS/PQTLS Client Auth Certificate")
+	kex = flag.String("kex", "", "Key Exchange algorithm")
+	auth = flag.String("auth", "", "Authentication algorithm")
+	rootCert = flag.String("rootcert", "", "Path to the root CA certificate PEM file")
+	rootKey = flag.String("rootkey", "", "Path to the root CA private key PEM file")
+	hybridRoot = flag.String("hybridroot", "", "Hybrid Root CA Algorithm name")
+	IPserver   = flag.String("ipserver", "", "IP of the KEMTLS/PQTLS Server")
+	IPclient   = flag.String("ipclient", "", "IP of the KEMTLS/PQTLS Client Auth Certificate")
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
 	clientAuth = flag.Bool("clientauth", false, "Client authentication")
 	pqtls      = flag.Bool("pqtls", false, "PQTLS")
-	hybridRoot = flag.Bool("hybridroot", false, "Root CA with hybrid algorithm")
 	cachedCert = flag.Bool("cachedCert", false, "KEMTLS PDK or PQTLS(cached) server cert.")
 	isHTTP = flag.Bool("http", false, "HTTP server")
 )
@@ -154,8 +155,8 @@ func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509
 
 	var intCAAlgo interface{}
 
-	if *hybridRoot {
-		rootCertX509, rootPriv = constructHybridRoot(*hybridRootAlgo, secNum)
+	if *hybridRoot != "" {
+		rootCertX509, rootPriv = constructHybridRoot(*hybridRoot, secNum)
 
 		intCAAlgo = rootPriv.(*liboqs_sig.PrivateKey).SigId
 	} else {
