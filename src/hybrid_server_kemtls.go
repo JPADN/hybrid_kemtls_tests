@@ -27,7 +27,7 @@ var (
 	auth = flag.String("authserver", "", "Authentication algorithm")
 	rootCert = flag.String("rootcert", "", "Path to the root CA certificate PEM file")
 	rootKey = flag.String("rootkey", "", "Path to the root CA private key PEM file")
-	hybridRoot = flag.String("hybridroot", "", "Hybrid Root CA Algorithm name")
+	hybridRootFamily = flag.String("hybridroot", "", "Hybrid Root CA Algorithm family name")
 	IPserver   = flag.String("ipserver", "", "IP of the KEMTLS/PQTLS Server")
 	IPclient   = flag.String("ipclient", "", "IP of the KEMTLS/PQTLS Client Auth Certificate")
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
@@ -83,7 +83,6 @@ func sortAlgorithmsMap() (KEXkeys []string, Authkeys []string) {
 	// or return a specific ordering (PQC-only then hybrid interleaved together)
 
 	outputKEX := []string{
-		"P256", "P384", "P521",
 		"Kyber512", "P256_Kyber512", "Kyber768", "P384_Kyber768",
 		"Kyber1024", "P521_Kyber1024", "LightSaber_KEM", "P256_LightSaber_KEM",
 		"Saber_KEM", "P384_Saber_KEM", "FireSaber_KEM", "P521_FireSaber_KEM",
@@ -95,7 +94,6 @@ func sortAlgorithmsMap() (KEXkeys []string, Authkeys []string) {
 	}
 
 	outputAuth := []string{
-		"P256", "P384", "P521",
 		"P256_Dilithium2", "P256_Falcon512", //"P256_RainbowIClassic",
 		"P384_Dilithium3",                    //"P384_RainbowIIIClassic",
 		"P521_Dilithium5", "P521_Falcon1024", //"P521_RainbowVClassic",
@@ -155,8 +153,8 @@ func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509
 
 	var intCAAlgo interface{}
 
-	if *hybridRoot != "" {
-		rootCertX509, rootPriv = constructHybridRoot(*hybridRoot, secNum)
+	if *hybridRootFamily != "" {
+		rootCertX509, rootPriv = constructHybridRoot(*hybridRootFamily, secNum)
 
 		intCAAlgo = rootPriv.(*liboqs_sig.PrivateKey).SigId
 	} else {

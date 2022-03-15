@@ -16,7 +16,6 @@ import (
 	"encoding/asn1"
 	"encoding/hex"
 
-	"regexp"
 	"fmt"
 	"io"
 )
@@ -59,24 +58,29 @@ func countFileLines() {
 	fmt.Println(max_count)
 }
 
-func constructHybridRoot(rootAlgo string, securityLevel int) (*x509.Certificate, *liboqs_sig.PrivateKey) {
+func constructHybridRoot(rootFamily string, securityLevel int) (*x509.Certificate, *liboqs_sig.PrivateKey) {
 
 	/* ------------------------------ Reading file ------------------------------ */
 	var rootData []string
 	var rootFileName string
+	var algList []string
 
-	reLevel1 := regexp.MustCompile(`P256`)
-	reLevel3 := regexp.MustCompile(`P384`)
-	reLevel5 := regexp.MustCompile(`P521`)
+	dilithiumAlg := []string{"P256_Dilithium2", "", "P384_Dilithium3", "", "P521_Dilithium5"}
+	falconAlg := []string{"P256_Falcon512", "", "P256_Falcon512", "", "P521_Falcon1024"}
 
-	
-	if !((securityLevel == 1 && reLevel1.MatchString(rootAlgo)) || 
-	   	 (securityLevel == 3 && reLevel3.MatchString(rootAlgo)) ||
-		 	 (securityLevel == 5 && reLevel5.MatchString(rootAlgo))) {
-		panic("Root CA algorithm does not match the security level of the server certificate")
+	if rootFamily == "dilithium" {
+		algList = dilithiumAlg
+	} else if rootFamily == "falcon" {
+		algList = falconAlg
+	} else {
+		panic("Unknown Root CA algorithm family")
 	}
 
-	rootFileName = "root_ca/hybrid_root_ca_" + rootAlgo + ".txt"
+	if securityLevel == 1 || securityLevel == 3 || securityLevel == 5 {
+		rootFileName = "root_ca/hybrid_root_ca_" + algList[securityLevel-1] + ".txt"
+	} else {
+		panic("Unknown security level")
+	}
 
 	file, err := os.Open(rootFileName)
 	if err != nil {

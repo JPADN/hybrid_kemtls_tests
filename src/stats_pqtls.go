@@ -89,7 +89,7 @@ func pqtlsPrintStatistics(results []PQTLSClientResultsInfo) {
 }
 
 func pqtlsInitCSV() {
-	csvFile, err := os.Create("pqtls-client.csv")
+	csvFile, err := os.Create("csv/pqtls-client.csv")
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -103,7 +103,7 @@ func pqtlsInitCSV() {
 }
 
 func pqtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, name, authName string, hs int) {
-	csvFile, err := os.OpenFile("pqtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	csvFile, err := os.OpenFile("csv/pqtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}
@@ -131,7 +131,7 @@ func pqtlsResultsExporter(results []PQTLSClientResultsInfo, boxPlotValues []plot
 }
 
 func pqtlsInitCSVServer() {
-	csvFile, err := os.Create("pqtls-server.csv")
+	csvFile, err := os.Create("csv/pqtls-server.csv")
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -145,7 +145,7 @@ func pqtlsInitCSVServer() {
 }
 
 func pqtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsWriteCertVerify []float64, name string, authName string, hs int) {
-	csvFile, err := os.OpenFile("pqtls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	csvFile, err := os.OpenFile("csv/pqtls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}

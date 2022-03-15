@@ -83,7 +83,10 @@ The TLS servers will perform Hybrid KEMTLS or Hybrid PQTLS, depending on the fla
 
 If the Root CA is Hybrid Root CA, the following flag must be set to the hybrid algorithm
 
-`-hybridroot`: Hybrid Root CA algorithm
+`-hybridroot`: Hybrid Root CA algorithm family name
+> Possible values:
+>
+> dilithium, falcon
 
 If the Root CA uses classical algorithms, the following flags must be set:
 
@@ -122,7 +125,7 @@ It will instantiate a TLS client (for non-HTTP server) that will perform a numbe
 
 If the Root CA is Hybrid Root CA, the following flag must be set to the hybrid algorithm
 
-`-hybridroot`: Hybrid Root CA algorithm
+`-hybridroot`: Hybrid Root CA algorithm family name
 
 If the Root CA uses classical algorithms, the following flags must be set:
 
@@ -163,7 +166,7 @@ Perform HTTP Load Tests. It is based on the already existing gobench tool, avail
 
 If the Root CA is Hybrid Root CA, the following flag must be set to the hybrid algorithm
 
-`-hybridroot`: Hybrid Root CA algorithm
+`-hybridroot`: Hybrid Root CA algorithm family name
 
 If the Root CA uses classical algorithms, the following flags must be set:
 
@@ -205,10 +208,11 @@ Execute them in the `src/` directory
 
 ### Generating Root CA
 
+The Root CAs can be generated with the `gen_all_root.sh` script:
 ```
-go run generate_root.go hybrid_server_kemtls.go stats_pqtls.go stats_kemtls.go plot_functions.go parse_hybrid_root.go \
--algo P256_Dilithium2
+./gen_all_roots.sh
 ```
+
 
 ### Hybrid KEMTLS
 
@@ -217,7 +221,7 @@ go run generate_root.go hybrid_server_kemtls.go stats_pqtls.go stats_kemtls.go p
 go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
--hybridroot P256_Dilithium2
+-hybridroot dilithium
 ```
 
 **Client:**
@@ -226,7 +230,7 @@ go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls
 -ipclient 127.0.0.1 \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
--hybridroot P256_Dilithium2
+-hybridroot dilithium
 ```
 
 ### Hybrid PQTLS
@@ -236,7 +240,7 @@ go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls
 go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
--hybridroot P256_Dilithium2
+-hybridroot dilithium \
 -pqtls
 ```
 
@@ -246,7 +250,7 @@ go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls
 -ipclient 127.0.0.1 \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
--hybridroot P256_Dilithium2
+-hybridroot dilithium \
 -pqtls
 ```
 
@@ -256,8 +260,8 @@ go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls
 ```
 go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
 -ipserver 127.0.0.1 \
--serverkex P256_Kyber512
--hybridroot P256_Dilithium2
+-serverkex P256_Kyber512 \
+-hybridroot dilithium \
 -http
 ```
 
@@ -266,7 +270,7 @@ go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtl
 go run gobench.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go 
 -kex P256_Kyber512 \
 -authalgo P256_Kyber512 \
--hybridroot P256_Dilithium2 \
+-hybridroot dilithium \
 -k=true \
 -u https://127.0.0.1:4433 \
 -c 10 \

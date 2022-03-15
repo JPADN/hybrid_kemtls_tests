@@ -93,7 +93,7 @@ func kemtlsPrintStatistics(results []KEMTLSClientResultsInfo) {
 }
 
 func kemtlsInitCSV() {
-	csvFile, err := os.Create("kemtls-client.csv")
+	csvFile, err := os.Create("csv/kemtls-client.csv")
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -107,7 +107,7 @@ func kemtlsInitCSV() {
 }
 
 func kemtlsInitCSVServer() {
-	csvFile, err := os.Create("kemtls-server.csv")
+	csvFile, err := os.Create("csv/kemtls-server.csv")
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -122,7 +122,7 @@ func kemtlsInitCSVServer() {
 
 //func kemtlsSaveCSV(boxPlotValues []plotter.Values, names []string, hs int) {
 func kemtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, name string, hs int) {
-	csvFile, err := os.OpenFile("kemtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	csvFile, err := os.OpenFile("csv/kemtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}
@@ -144,7 +144,7 @@ func kemtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []fl
 }
 
 func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsReadKEMCiphertext []float64, name string, hs int) {
-	csvFile, err := os.OpenFile("kemtls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	csvFile, err := os.OpenFile("csv/kemtls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}
