@@ -33,8 +33,8 @@ func launchServer() {
 	var keysKEX, keysAuth []string
 
 	if *isHTTP {
-		keysKEX = *kex
-		keysAuth = *auth
+		keysKEX = []string{*kex}
+		keysAuth = []string{*auth}
 	} else {
 		keysKEX, keysAuth = sortAlgorithmsMap()
 	}

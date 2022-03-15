@@ -24,7 +24,7 @@ import (
 
 var (
 	kex = flag.String("kex", "", "Key Exchange algorithm")
-	auth = flag.String("auth", "", "Authentication algorithm")
+	auth = flag.String("authserver", "", "Authentication algorithm")
 	rootCert = flag.String("rootcert", "", "Path to the root CA certificate PEM file")
 	rootKey = flag.String("rootkey", "", "Path to the root CA private key PEM file")
 	hybridRoot = flag.String("hybridroot", "", "Hybrid Root CA Algorithm name")

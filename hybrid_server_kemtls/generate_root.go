@@ -18,7 +18,6 @@ import (
 
 var (
 	rootAlgo = flag.String("algo", "P256", "Root CA Algorithm")
-	hybrid = flag.Bool("hybrid", false, "Hybrid Root Certificate Authority")
 )
 
 func generateHybridRoot(rootCAAlgo interface{}, curve elliptic.Curve) {
@@ -136,29 +135,21 @@ func generateClassicRoot(rootCACurve elliptic.Curve) {
 func main() {
 
 	flag.Parse()
+	
+	rootSigInterface := nameToHybridSigID(*rootAlgo)
 
-	if *hybrid {
-		rootSigInterface := nameToHybridSigID(*rootAlgo)
+	rootLiboqsID, ok := rootSigInterface.(liboqs_sig.ID)
 
-		rootSigID, ok := rootSigInterface.(liboqs_sig.ID)
-		if !ok {
-			panic("Not a Liboqs Hybrid Signature")
-		}
-
-		curve, _ := liboqs_sig.ClassicFromSig(rootSigID)
-		generateHybridRoot(rootSigID, curve)
+	if ok {				
+		curve, _ := liboqs_sig.ClassicFromSig(rootLiboqsID)
+		generateHybridRoot(rootLiboqsID, curve)
 	} else {
-		var rootAlgoCurve elliptic.Curve
-
-		switch *rootAlgo {
-		case "P256":
-			rootAlgoCurve = elliptic.P256()
-		case "P384":
-			rootAlgoCurve = elliptic.P384()
-		case "P521":
-			rootAlgoCurve = elliptic.P521()
+		rootSigCurve, ok := rootSigInterface.(elliptic.Curve)
+	
+		if ok {
+			generateClassicRoot(rootSigCurve)
+		} else {
+			panic("Unsupported algorithm")
 		}
-
-		generateClassicRoot(rootAlgoCurve)
 	}
 }
