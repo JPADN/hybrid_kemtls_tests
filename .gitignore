@@ -9,5 +9,5 @@ debug.sh
 *.crt
 *.key
 .vscode/
-process_root/
-generate_root/
+liboqs/
+liboqs-go/

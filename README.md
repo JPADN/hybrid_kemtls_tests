@@ -4,15 +4,28 @@
 
 This repository aims to experiment, measure and compare the experimental Hybrid KEMTLS implementation, made in the Go standard library.
 
-Before running the experiments, it is required that you have this experimental Go Standard Library available in your system. To do so, perform the following steps:
+Before running the experiments, it is required that you have this Hybrid KEMTLS Go Standard Library available in your system. To do so, perform the following steps:
 
-1. Install the Go language
+1. Install dependencies:
+```
+sudo apt install astyle cmake gcc ninja-build libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz python3-yaml pkg-config git
+```
+
+2. Install the Go language
 > [https://go.dev/doc/install](https://go.dev/doc/install)
-2. Clone the Experimental Go Standard Library repository;
-3. Go to the `src/` directory, from the root of the repository;
-4. Run the compilation script: `$ ./make.bash`
-> (The `$` indicates that it is a command to be executed in a terminal)\
-> The compilation will result in the following binary: `bin/go` (path relative to the root of the repository)
+>
+> The Go binary will be added temporarily to your PATH, to make it permanent append it to your `~/.profile `
+
+3. Clone the Hybrid KEMTLS Go Standard Library repository;
+
+4. Checkout to the `hybrid_kemtls_bindings` branch: `$ git checkout hybrid_kemtls_bindings`
+
+5. Run the installation script: `. install.sh`
+> You must precisely follow this syntax, in order to execute the script under the current shell
+>
+> It will clone and compile Liboqs and Liboqs-Go, and compile Hybrid KEMTLS Go
+>
+> The Go compilation will result in a Go binary which will be added to your PATH
 
 The resultant Go binary will be used to compile and run the code from this repository
 
@@ -49,14 +62,11 @@ The first step is to create a Root CA to be used by the server and the client. F
 
 Generates a Root CA to be used in the tests. If the Root CA uses classic algorithms, it will be generated PEM encoded files for the certificate and the private key. If the Root CA uses hybrid algorithms, it will be generated a text file with the Root CA data, so the server and the client script can reconstruct the CA in runtime. This is a workaround to avoid modification in the certificate encoding package of the Go Standard Library.
 
+The Root CA files are written to the `root_ca/` directory.
+
 ### Required flags:
 
 `-rootalgo`:
-
-### Optional flags:
-
-`-hybrid`: Generates a Hybrid Root
-
 
 <br/>
 
@@ -83,8 +93,9 @@ If the Root CA uses classical algorithms, the following flags must be set:
 
 If the `-http` flag is true, it must be supplied the Key Exchange and the Authentication algorithms, with the following flags:
 
-`-kex`: 
-`-auth`:
+`-kex`: Key Exchange algorithm
+
+`-authserver`: Authentication algorithm
 
 ### Optional flags
 
@@ -142,7 +153,7 @@ Perform HTTP Load Tests. It is based on the already existing gobench tool, avail
 
 ### Required flags
 
-`-benchkex`: KEX algorithm
+`-benchkex`: Key Exchange algorithm
 
 `-benchauth`: Authentication algorithm
 
@@ -187,6 +198,17 @@ If the Root CA uses classical algorithms, the following flags must be set:
 
 
 ## Examples
+
+The following examples assume you have the Hybrid KEMTLS Go binary in your PATH. If you don't have it, instead of simply calling `go` you must pass the path to the Hybrid KEMTLS Go binary.
+
+Execute them in the `src/` directory
+
+### Generating Root CA
+
+```
+go run generate_root.go hybrid_server_kemtls.go stats_pqtls.go stats_kemtls.go plot_functions.go parse_hybrid_root.go \
+-algo P256_Dilithium2
+```
 
 ### Hybrid KEMTLS
 
