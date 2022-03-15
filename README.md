@@ -208,7 +208,7 @@ Execute them in the `src/` directory.
 
 ### Generating Root CA
 
-The Root CAs can be generated with the `gen_all_root.sh` script:
+The Root CAs can be generated with the `gen_all_root.sh` script. Run it from the `scripts/` dir:
 ```
 ./gen_all_roots.sh
 ```
