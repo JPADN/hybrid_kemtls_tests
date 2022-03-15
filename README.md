@@ -121,7 +121,7 @@ It will instantiate a TLS client (for non-HTTP server) that will perform a numbe
 
 ### Required flags
 
-`-ipserver:` IP address of the client
+`-ipserver:` IP address of the server
 
 If the Root CA is Hybrid Root CA, the following flag must be set to the hybrid algorithm
 
@@ -204,7 +204,7 @@ If the Root CA uses classical algorithms, the following flags must be set:
 
 The following examples assume you have the Hybrid KEMTLS Go binary in your PATH. If you don't have it, instead of simply calling `go` you must pass the path to the Hybrid KEMTLS Go binary.
 
-Execute them in the `src/` directory
+Execute them in the `src/` directory.
 
 ### Generating Root CA
 
@@ -277,3 +277,7 @@ go run gobench.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go st
 -t 5 
 
 ```
+
+Alternatively, it can be used the scripts in the `scripts/` directory:
+
+`config.sh` defines the `COMMON_FLAGS` variable, which holds the common flags for the server, client and gobench
