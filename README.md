@@ -260,22 +260,21 @@ go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls
 ```
 go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
 -ipserver 127.0.0.1 \
--serverkex P256_Kyber512 \
+-kex P256_Kyber512 \
 -hybridroot dilithium \
 -http
 ```
 
 **(Hybrid KEMTLS) Gobench:**
 ```
-go run gobench.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go 
--kex P256_Kyber512 \
--authalgo P256_Kyber512 \
+go run gobench.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+-benchkex P256_Kyber512 \
+-benchauth P256_Kyber512 \
 -hybridroot dilithium \
 -k=true \
 -u https://127.0.0.1:4433 \
 -c 10 \
 -t 5 
-
 ```
 
 Alternatively, it can be used the scripts in the `scripts/` directory:
