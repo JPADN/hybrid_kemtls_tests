@@ -541,20 +541,20 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 			}
 			countConnections++
 
-			//server read client hello
-			n, err := server.Read(buf)
-			if err != nil || n != len(clientMsg) {
-				fmt.Print(err)
-				fmt.Print("error 2 %v", err)
-			}
-
 			//server responds
-			server.Write([]byte(serverMsg))
+			n, err := server.Write([]byte(serverMsg))
 			if n != len(serverMsg) || err != nil {
 				//error
 				fmt.Print(err)
 				fmt.Print("error 3 %v", err)
 			}
+
+			//server read client hello
+			n, err = server.Read(buf)
+			if err != nil || n != len(clientMsg) {
+				fmt.Print(err)
+				fmt.Print("error 2 %v", err)
+			}			
 
 			if *pqtls {
 
@@ -631,9 +631,26 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		}
 		defer client.Close()
 
+		// additionalTiming := createTLS13ClientHandshakeTimingInfo(nil)
+
+		timer := time.Now		
+		start := timer()
+	
+		_, err = client.Read(buf)
+
+		// timingState.clientTimingInfo.FullProtocol = timingState.clientTimingInfo.FullProtocol + additionalTiming.elapsedTime()
+
+		end := timer().Sub(start)
+
+		fullProtocol := timingState.clientTimingInfo.FullProtocol
+		timingState.clientTimingInfo.FullProtocol = timingState.clientTimingInfo.FullProtocol + end
+
+		fmt.Println(fullProtocol.Milliseconds())
+		fmt.Println(end.Milliseconds())
+		fmt.Println(timingState.clientTimingInfo.FullProtocol.Milliseconds())
+
 		client.Write([]byte(clientMsg))
 
-		_, err = client.Read(buf)
 
 		/*fmt.Println("Client")
 		fmt.Printf("|--> Write Client Hello       |%v| \n", timingState.clientTimingInfo.WriteClientHello)
