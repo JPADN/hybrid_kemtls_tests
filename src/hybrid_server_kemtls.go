@@ -631,26 +631,14 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		}
 		defer client.Close()
 
-		// additionalTiming := createTLS13ClientHandshakeTimingInfo(nil)
-
 		timer := time.Now		
 		start := timer()
 	
 		_, err = client.Read(buf)
 
-		// timingState.clientTimingInfo.FullProtocol = timingState.clientTimingInfo.FullProtocol + additionalTiming.elapsedTime()
-
-		end := timer().Sub(start)
-
-		fullProtocol := timingState.clientTimingInfo.FullProtocol
-		timingState.clientTimingInfo.FullProtocol = timingState.clientTimingInfo.FullProtocol + end
-
-		fmt.Println(fullProtocol.Milliseconds())
-		fmt.Println(end.Milliseconds())
-		fmt.Println(timingState.clientTimingInfo.FullProtocol.Milliseconds())
+		timingState.clientTimingInfo.FullProtocol = timingState.clientTimingInfo.FullProtocol + timer().Sub(start)
 
 		client.Write([]byte(clientMsg))
-
 
 		/*fmt.Println("Client")
 		fmt.Printf("|--> Write Client Hello       |%v| \n", timingState.clientTimingInfo.WriteClientHello)
