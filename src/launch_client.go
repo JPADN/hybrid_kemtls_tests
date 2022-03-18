@@ -73,7 +73,7 @@ func main() {
 			var timingsWriteClientHello []float64
 			var timingsWriteKEMCiphertext []float64
 
-			if *cachedCert {
+			if *cachedCert && !*pqtls {
 				_, connState, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
 				if err != nil {
 					fmt.Println("Error establishing first connection for PDK mode:")
@@ -145,7 +145,7 @@ func main() {
 				var timingsWriteClientHello []float64
 				//var timingsWriteKEMCiphertext []float64
 
-				if *cachedCert {
+				if *cachedCert && !*pqtls {
 					_, connState, err := testConnHybrid(clientMsg, clientMsg, clientConfig, clientConfig, "client", *IPserver, strport)
 					if err != nil {
 						fmt.Println("Error establishing first connection for PQTLS (cached) mode:")

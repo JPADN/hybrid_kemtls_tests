@@ -5,5 +5,6 @@
 # -rootcert 
 # -rootkey 
 # -hybridroot
+# -cachedcert
 
 COMMON_FLAGS="-handshakes 10 -hybridroot falcon -pqtls -clientauth"

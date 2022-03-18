@@ -528,6 +528,12 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		ln := newLocalListener(ipserver, port)
 		defer ln.Close()
 
+		ignoreFirstConn := false
+		
+		if *cachedCert {
+			ignoreFirstConn = true
+		}
+		
 		for {
 
 			serverConn, err := ln.Accept()
@@ -539,7 +545,6 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 			if err := server.Handshake(); err != nil {
 				fmt.Printf("Handshake error %v", err)
 			}
-			countConnections++
 
 			//server responds
 			n, err := server.Write([]byte(serverMsg))
@@ -555,6 +560,13 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 				fmt.Print(err)
 				fmt.Print("error 2 %v", err)
 			}
+
+			if ignoreFirstConn {
+				continue
+				ignoreFirstConn = false
+			}		
+
+			countConnections++
 
 			cconnState = server.ConnectionState()
 
