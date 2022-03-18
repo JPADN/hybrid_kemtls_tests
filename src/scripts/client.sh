@@ -3,6 +3,7 @@ source config.sh
 # Client exclusive flags:
 # -ipclient
 # -ipserver
+# -cachedcert
 
 cd ..
 

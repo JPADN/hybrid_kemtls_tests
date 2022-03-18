@@ -33,7 +33,7 @@ var (
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
 	clientAuth = flag.Bool("clientauth", false, "Client authentication")
 	pqtls      = flag.Bool("pqtls", false, "PQTLS")
-	cachedCert = flag.Bool("cachedCert", false, "KEMTLS PDK or PQTLS(cached) server cert.")
+	cachedCert = flag.Bool("cachedcert", false, "KEMTLS PDK or PQTLS(cached) server cert.")
 	isHTTP = flag.Bool("http", false, "HTTP server")
 )
 
@@ -508,7 +508,7 @@ func (ti *timingInfo) eventHandler(event tls.CFEvent) {
 	}
 }
 
-func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls.Config, peer string, ipserver string, port string) (timingState timingInfo, isDC bool, cconnState tls.ConnectionState, err error) {
+func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls.Config, peer string, ipserver string, port string) (timingState timingInfo, cconnState tls.ConnectionState, err error) {
 	clientConfig.CFEventHandler = timingState.eventHandler
 	serverConfig.CFEventHandler = timingState.eventHandler
 
@@ -554,14 +554,16 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 			if err != nil || n != len(clientMsg) {
 				fmt.Print(err)
 				fmt.Print("error 2 %v", err)
-			}			
+			}
+
+			cconnState = server.ConnectionState()
 
 			if *pqtls {
 
-				if server.ConnectionState().DidPQTLS {
+				if cconnState.DidPQTLS {
 
 					if *clientAuth {
-						if !server.ConnectionState().DidClientAuthentication {
+						if !cconnState.DidClientAuthentication {
 							panic("Server unsuccessful PQTLS with mutual authentication")
 						}
 					}
@@ -591,10 +593,10 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 					panic("Server unsuccessful PQTLS")
 				}
 			} else {
-				if server.ConnectionState().DidKEMTLS {
+				if cconnState.DidKEMTLS {
 
 					if *clientAuth {
-						if !server.ConnectionState().DidClientAuthentication {
+						if !cconnState.DidClientAuthentication {
 							panic("Server unsuccessful PQTLS with mutual authentication")
 						}
 					}
@@ -655,12 +657,14 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		fmt.Printf("Client Total time: |%v| \n", timingState.clientTimingInfo.FullProtocol)
 		*/
 
+		cconnState = client.ConnectionState()
+
 		if *pqtls {
-			if client.ConnectionState().DidPQTLS {
+			if cconnState.DidPQTLS {
 
 				if *clientAuth {
 
-					if client.ConnectionState().DidClientAuthentication {
+					if cconnState.DidClientAuthentication {
 						log.Println("Client Success using PQTLS with mutual authentication")
 					} else {
 						panic("Client unsuccessful PQTLS with mutual authentication")
@@ -674,10 +678,10 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 			}
 
 		} else {
-			if client.ConnectionState().DidKEMTLS {
+			if cconnState.DidKEMTLS {
 				if *clientAuth {
 
-					if client.ConnectionState().DidClientAuthentication {
+					if cconnState.DidClientAuthentication {
 						log.Println("Client Success using KEMTLS with mutual authentication")
 					} else {
 						panic("Client unsuccessful KEMTLS with mutual authentication")
@@ -693,7 +697,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 		}
 	}
 
-	return timingState, true, cconnState, nil
+	return timingState, cconnState, nil
 }
 
 func httpServer(serverConfig *tls.Config, port string) {
