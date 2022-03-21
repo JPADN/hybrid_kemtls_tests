@@ -12,9 +12,12 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+	netURL "net/url"
+	"crypto/tls"
 
 	"github.com/valyala/fasthttp"
 )
@@ -251,6 +254,42 @@ func NewConfiguration() *Configuration {
 	if configuration.myClient.TLSConfig == nil {
 		log.Fatal("Error in initClientAndAuth: result config is nil")
 	}
+	
+	if *cachedCert {
+
+		u, err := netURL.Parse(url)
+		if err != nil {
+			panic(err)
+		}
+
+		host, port, _ := net.SplitHostPort(u.Host)	
+		
+		portInt, err := strconv.Atoi(port)
+		if err != nil {
+			panic(err)
+		}		
+
+		portInt = portInt + 1
+		port = strconv.Itoa(portInt)		
+
+		client, err := tls.Dial("tcp", host+":"+port, configuration.myClient.TLSConfig)
+		if err != nil {
+			fmt.Print(err)
+		}
+		defer client.Close()
+
+		cconnState := client.ConnectionState()
+				
+		if err != nil {
+			fmt.Println("Error establishing first connection for PQTLS (cached) mode:")
+			log.Fatal(err)
+		} else {
+			fmt.Println("Sucess establishing first connection for cached mode:")
+		}
+
+		configuration.myClient.TLSConfig.CachedCert = cconnState.CertificateMessage		
+	}
+			
 	/* ----------------------------------- End ---------------------------------- */
 	return configuration
 }

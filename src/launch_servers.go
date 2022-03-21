@@ -9,13 +9,47 @@ import (
 	"log"
 	"regexp"
 	"sync"
+	"strconv"
 )
 
 var wg sync.WaitGroup
 
+// Launches a temporary TLS server to be used by the gobench client in order to obtain the server certificate
+// preliminarily to the HTTP load test
+func launchTempServer(tlsConfig *tls.Config, clientMsg, serverMsg, ipserver, port string) {	
+
+	ln := newLocalListener(ipserver, port)
+	defer ln.Close()
+
+	serverConn, err := ln.Accept()
+	if err != nil {
+		fmt.Println(err)		
+	}
+	server := tls.Server(serverConn, tlsConfig)
+	if err := server.Handshake(); err != nil {
+		fmt.Printf("Handshake error %v\n", err)
+	}		
+
+	err = server.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 // wrapper function to start a server in each port
 func startServerHybrid(clientMsg, serverMsg string, serverConfig *tls.Config, ipserver string, port string) {	
 	if *isHTTP {
+		if *cachedCert {
+			portInt, err := strconv.Atoi(port)
+			if err != nil {
+				panic(err)
+			}
+
+			portInt = portInt + 1
+			portTemp := strconv.Itoa(portInt)
+
+			launchTempServer(serverConfig, clientHSMsg, serverHSMsg, ipserver, portTemp)
+		}
 		httpServer(serverConfig, port)
 	} else {
 		go testConnHybrid(clientMsg, serverMsg, serverConfig, "server", ipserver, port)
