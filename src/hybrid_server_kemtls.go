@@ -69,6 +69,9 @@ var (
 	hsClassicAuthAlgorithms = map[string]elliptic.Curve{
 		"P256": elliptic.P256(), "P384": elliptic.P384(), "P521": elliptic.P521(),
 	}
+
+	clientHSMsg = "hello, server"
+	serverHSMsg = "hello, client"
 )
 
 //sort and returns sorted keys
@@ -508,20 +511,16 @@ func (ti *timingInfo) eventHandler(event tls.CFEvent) {
 	}
 }
 
-func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls.Config, peer string, ipserver string, port string) (timingState timingInfo, cconnState tls.ConnectionState, err error) {
-	clientConfig.CFEventHandler = timingState.eventHandler
-	serverConfig.CFEventHandler = timingState.eventHandler
-
-	bufLen := len(clientMsg)
-	if len(serverMsg) > len(clientMsg) {
-		bufLen = len(serverMsg)
-	}
-	buf := make([]byte, bufLen)
+func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer string, ipserver string, port string) (timingState timingInfo, cconnState tls.ConnectionState, err error) {	
+	tlsConfig.CFEventHandler = timingState.eventHandler
+	
 	if peer == "server" {
 		var timingsFullProtocol []float64
 		var timingsWriteServerHello []float64
 		var timingsWriteCertVerify []float64
-		var timingsReadKEMCiphertext []float64
+		var timingsReadKEMCiphertext []float64		
+		
+		buf := make([]byte, len(clientMsg))
 
 		countConnections := 0
 
@@ -541,7 +540,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 				fmt.Print(err)
 				fmt.Print("error 1 %v", err)
 			}
-			server := tls.Server(serverConn, serverConfig)
+			server := tls.Server(serverConn, tlsConfig)
 			if err := server.Handshake(); err != nil {
 				fmt.Printf("Handshake error %v", err)
 			}
@@ -585,16 +584,16 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 					timingsWriteCertVerify = append(timingsWriteCertVerify, float64(timingState.serverTimingInfo.WriteCertificateVerify)/float64(time.Millisecond))
 
 					if countConnections == *handshakes {
-						kKEX, e := CurveIDToName(serverConfig.CurvePreferences[0])
+						kKEX, e := CurveIDToName(tlsConfig.CurvePreferences[0])
 						if e != nil {
 							fmt.Print("4 %v", err)
 						}
-						priv, _ := serverConfig.Certificates[0].PrivateKey.(*liboqs_sig.PrivateKey)
+						priv, _ := tlsConfig.Certificates[0].PrivateKey.(*liboqs_sig.PrivateKey)
 						kAuth, err := authIDToName(priv.SigId)
 						if e != nil {
 							fmt.Print("5 %v", err)
 						}
-						//kAuth := serverConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String()
+						//kAuth := tlsConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String()
 						pqtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsWriteCertVerify, kKEX, kAuth, countConnections)
 						countConnections = 0
 						timingsFullProtocol = nil
@@ -618,7 +617,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 					timingsReadKEMCiphertext = append(timingsReadKEMCiphertext, float64(timingState.serverTimingInfo.ReadKEMCiphertext)/float64(time.Millisecond))
 
 					if countConnections == *handshakes {
-						kKEX, e := CurveIDToName(serverConfig.CurvePreferences[0])
+						kKEX, e := CurveIDToName(tlsConfig.CurvePreferences[0])
 						if e != nil {
 							fmt.Print("4 %v", err)
 						}
@@ -639,7 +638,9 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 
 	if peer == "client" {
 
-		client, err := tls.Dial("tcp", ipserver+":"+port, clientConfig)
+		buf := make([]byte, len(serverMsg))
+
+		client, err := tls.Dial("tcp", ipserver+":"+port, tlsConfig)
 		if err != nil {
 			fmt.Print(err)
 		}
@@ -652,22 +653,7 @@ func testConnHybrid(clientMsg, serverMsg string, clientConfig, serverConfig *tls
 
 		timingState.clientTimingInfo.FullProtocol = timingState.clientTimingInfo.FullProtocol + timer().Sub(start)
 
-		client.Write([]byte(clientMsg))
-
-		/*fmt.Println("Client")
-		fmt.Printf("|--> Write Client Hello       |%v| \n", timingState.clientTimingInfo.WriteClientHello)
-
-		fmt.Println("Client")
-		fmt.Printf("-->| Process Server Hello       |%v| \n", timingState.clientTimingInfo.ProcessServerHello)
-		fmt.Printf("   | Receive Server Enc Exts    |%v| \n", timingState.clientTimingInfo.ReadEncryptedExtensions)
-		fmt.Printf("   | Receive Server Certificate |%v| \n", timingState.clientTimingInfo.ReadCertificate)
-		fmt.Printf("   | Write KEM Ciphertext       |%v| \n", timingState.clientTimingInfo.WriteKEMCiphertext)
-		fmt.Printf("<--| Write Client Finished      |%v| \n", timingState.clientTimingInfo.WriteClientFinished)
-
-		fmt.Println("Client")
-		fmt.Printf("-->| Process Server Finshed       |%v| \n", timingState.clientTimingInfo.ReadServerFinished)
-		fmt.Printf("Client Total time: |%v| \n", timingState.clientTimingInfo.FullProtocol)
-		*/
+		client.Write([]byte(clientMsg))		
 
 		cconnState = client.ConnectionState()
 
