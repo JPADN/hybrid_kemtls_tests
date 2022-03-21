@@ -111,6 +111,8 @@ If the `-http` flag is true, it must be supplied the Key Exchange and the Authen
 
 `-handshakes`: Number of handshakes that the server will measure the timings and save it in a csv.
 
+`-cachedcert`: Server will perform KEMTLS-PDK
+
 <br/>
 
 
@@ -144,6 +146,7 @@ If the Root CA uses classical algorithms, the following flags must be set:
 
 `-handshakes`: Number of handshakes that the client will perform 
 
+`-cachedcert`: Client will perform KEMTLS-PDK
 
 
 <br/>
@@ -180,6 +183,8 @@ If the Root CA uses classical algorithms, the following flags must be set:
 `-pqtls`: Instantiate a PQTLS client. If not present, then a KEMTLS client is instantiated
 
 `-clientauth`: Client will perform mutual authentication
+
+`-cachedcert`: Load test with KEMTLS-PDK
 
 `-k`: Do HTTP keep-alive
 
