@@ -50,7 +50,7 @@ func startServerHybrid(clientMsg, serverMsg string, serverConfig *tls.Config, ip
 
 			launchTempServer(serverConfig, clientHSMsg, serverHSMsg, ipserver, portTemp)
 		}
-		httpServer(serverConfig, port)
+		launchHTTPSServer(serverConfig, port)
 	} else {
 		go testConnHybrid(clientMsg, serverMsg, serverConfig, "server", ipserver, port)
 	}
@@ -70,7 +70,8 @@ func launchServer() {
 		keysKEX = []string{*kex}
 		keysAuth = []string{*auth}
 	} else {
-		keysKEX, keysAuth = sortAlgorithmsMap()
+		keysKEX = testsKEXAlgorithms
+		keysAuth = testsAuthAlgorithms
 	}
 
 	reLevel1 := regexp.MustCompile(`P256`)

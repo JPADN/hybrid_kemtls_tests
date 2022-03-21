@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+// Command line flags
 var (
 	kex = flag.String("kex", "", "Key Exchange algorithm")
 	auth = flag.String("authserver", "", "Authentication algorithm")
@@ -39,11 +40,11 @@ var (
 
 var (
 
-	// CIRCL
+	// CIRCL Algorithms
 	// hsAlgorithms = map[string]tls.CurveID{"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
 	// 	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
 
-	// Liboqs
+	// Liboqs Algorithms
 	hsKEXAlgorithms = map[string]tls.CurveID{
 		"P256": tls.CurveP256, "P384": tls.CurveP384, "P521": tls.CurveP256,
 		"Kyber512": tls.OQS_Kyber512, "P256_Kyber512": tls.P256_Kyber512,
@@ -60,6 +61,7 @@ var (
 		"NTRU_HRSS_1373": tls.NTRU_HRSS_1373, "P521_NTRU_HRSS_1373": tls.P521_NTRU_HRSS_1373,
 	}
 
+	// Liboqs Algorithms
 	hsHybridAuthAlgorithms = map[string]liboqs_sig.ID{
 		"P256_Dilithium2": liboqs_sig.P256_Dilithium2, "P256_Falcon512": liboqs_sig.P256_Falcon512,
 		"P384_Dilithium3": liboqs_sig.P384_Dilithium3,
@@ -72,20 +74,9 @@ var (
 
 	clientHSMsg = "hello, server"
 	serverHSMsg = "hello, client"
-)
 
-//sort and returns sorted keys
-func sortAlgorithmsMap() (KEXkeys []string, Authkeys []string) {
-	// // sort the map of algorithms
-	// output := make([]string, 0, len(hsKEXAlgorithms))
-	// for k, _ := range hsKEXAlgorithms {
-	// 	output = append(output, k)
-	// }
-	// sort.Strings(output)
-
-	// or return a specific ordering (PQC-only then hybrid interleaved together)
-
-	outputKEX := []string{
+	// Algorithms to be used in the handshake tests
+	testsKEXAlgorithms = []string{
 		"Kyber512", "P256_Kyber512", "Kyber768", "P384_Kyber768",
 		"Kyber1024", "P521_Kyber1024", "LightSaber_KEM", "P256_LightSaber_KEM",
 		"Saber_KEM", "P384_Saber_KEM", "FireSaber_KEM", "P521_FireSaber_KEM",
@@ -96,16 +87,15 @@ func sortAlgorithmsMap() (KEXkeys []string, Authkeys []string) {
 		"NTRU_HRSS_701", "P384_NTRU_HRSS_701", "NTRU_HRSS_1373", "P521_NTRU_HRSS_1373",
 	}
 
-	outputAuth := []string{
-		"P256_Dilithium2", "P256_Falcon512", //"P256_RainbowIClassic",
-		"P384_Dilithium3",                    //"P384_RainbowIIIClassic",
-		"P521_Dilithium5", "P521_Falcon1024", //"P521_RainbowVClassic",
+	testsAuthAlgorithms = []string{
+		"P256_Dilithium2", "P256_Falcon512",
+		"P384_Dilithium3",
+		"P521_Dilithium5", "P521_Falcon1024",
 	}
+)
 
-	return outputKEX, outputAuth
-}
-
-func initClientAndAuth(k, kAuth string) (*tls.Config, error) {  // if PQTLS
+// Initialize client TLS configuration and certificate chain
+func initClientAndAuth(k, kAuth string) (*tls.Config, error) {
 	var clientConfig *tls.Config
 	
 	kexCurveID, err := nameToCurveID(k)
@@ -146,15 +136,15 @@ func initClientAndAuth(k, kAuth string) (*tls.Config, error) {  // if PQTLS
 		clientConfig = initClient(kexCurveID, intCACert, intCAPriv, rootCertX509)
 	}
 
-	// Select here the algorithm to be used in the KEX
 	clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
 	return clientConfig, nil
 }
 
-func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509.Certificate, rootPriv interface{}) {
+// Construct Certificate Authority chain (Root CA and Intermediate CA)
+func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509.Certificate, intCAPriv interface{}) {
 
-	var intCAAlgo interface{}
+	var intCAAlgo, rootPriv interface{}
 
 	if *hybridRootFamily != "" {
 		rootCertX509, rootPriv = constructHybridRoot(*hybridRootFamily, secNum)
@@ -176,7 +166,20 @@ func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509
 		intCAAlgo = rootPriv.(*ecdsa.PrivateKey).Curve
 	}
 
-	intCACert, intCAPriv := initCAs(rootCertX509, rootPriv, intCAAlgo)
+	// intCACert, intCAPriv = initCAs(rootCertX509, rootPriv, intCAAlgo)
+
+	intKeyUsage := x509.KeyUsageCertSign
+
+	intCACertBytes, intCAPriv, err := createCertificate(intCAAlgo, rootCertX509, rootPriv, true, false, "server", intKeyUsage, nil, "127.0.0.1")
+	if err != nil {
+		panic(err)
+	}
+
+	intCACert, err = x509.ParseCertificate(intCACertBytes)
+	if err != nil {
+		panic(err)
+	}
+
 	return rootCertX509, intCACert, intCAPriv
 }
 
@@ -230,7 +233,7 @@ func nameToHybridSigID(name string) interface{} {
 	panic("Algorithm not found")
 }
 
-func CurveIDToName(cID tls.CurveID) (name string, e error) {
+func curveIDToName(cID tls.CurveID) (name string, e error) {
 	for n, id := range hsKEXAlgorithms {
 		if id == cID {
 			return n, nil
@@ -248,6 +251,7 @@ func authIDToName(lID liboqs_sig.ID) (name string, e error) {
 	return "0", errors.New("ERROR: Auth Algorithm not found")
 }
 
+// Creates a certificate with the algorithm specified by pubkeyAlgo, signed by signer with signerPrivKey
 func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerPrivKey interface{}, isCA bool, isSelfSigned bool, peer string, keyUsage x509.KeyUsage, extKeyUsage []x509.ExtKeyUsage, hostName string) ([]byte, interface{}, error) {
 
 	var _validFor time.Duration
@@ -263,7 +267,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		hostName = "34.116.206.139"
 	}
 
-	var _host string = hostName //"127.0.0.1" // 34.116.206.139 server //  35.247.220.72 client
+	var _host string = hostName
 	var commonName string
 
 	var pub, priv interface{}
@@ -364,23 +368,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	return certDERBytes, priv, nil
 }
 
-func initCAs(rootCACert *x509.Certificate, rootCAPriv, intCAAlgo interface{}) (*x509.Certificate, interface{}) {
-
-	intKeyUsage := x509.KeyUsageCertSign
-
-	intCACertBytes, intCAPriv, err := createCertificate(intCAAlgo, rootCACert, rootCAPriv, true, false, "server", intKeyUsage, nil, "127.0.0.1")
-	if err != nil {
-		panic(err)
-	}
-
-	intCACert, err := x509.ParseCertificate(intCACertBytes)
-	if err != nil {
-		panic(err)
-	}
-
-	return intCACert, intCAPriv
-}
-
+// Initialize Server's TLS configuration
 func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
 	var err error
 	var cfg *tls.Config
@@ -435,6 +423,7 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 	return cfg
 }
 
+// Initializes Client's TLS configuration
 func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
 	var clientKeyUsage x509.KeyUsage
 
@@ -511,6 +500,7 @@ func (ti *timingInfo) eventHandler(event tls.CFEvent) {
 	}
 }
 
+// Performs the Test connections in the server side or the client side
 func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer string, ipserver string, port string) (timingState timingInfo, cconnState tls.ConnectionState, err error) {	
 	tlsConfig.CFEventHandler = timingState.eventHandler
 	
@@ -584,7 +574,7 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 					timingsWriteCertVerify = append(timingsWriteCertVerify, float64(timingState.serverTimingInfo.WriteCertificateVerify)/float64(time.Millisecond))
 
 					if countConnections == *handshakes {
-						kKEX, e := CurveIDToName(tlsConfig.CurvePreferences[0])
+						kKEX, e := curveIDToName(tlsConfig.CurvePreferences[0])
 						if e != nil {
 							fmt.Print("4 %v", err)
 						}
@@ -617,7 +607,7 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 					timingsReadKEMCiphertext = append(timingsReadKEMCiphertext, float64(timingState.serverTimingInfo.ReadKEMCiphertext)/float64(time.Millisecond))
 
 					if countConnections == *handshakes {
-						kKEX, e := CurveIDToName(tlsConfig.CurvePreferences[0])
+						kKEX, e := curveIDToName(tlsConfig.CurvePreferences[0])
 						if e != nil {
 							fmt.Print("4 %v", err)
 						}
@@ -698,7 +688,7 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 	return timingState, cconnState, nil
 }
 
-func httpServer(serverConfig *tls.Config, port string) {
+func launchHTTPSServer(serverConfig *tls.Config, port string) {
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	err := http.ListenAndServeTLSWithConfig(":"+ port, "", "", serverConfig, nil)
 	if err != nil {

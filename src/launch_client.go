@@ -39,7 +39,8 @@ func main() {
 		kemtlsInitCSV()
 	}
 
-	keysKEX, keysAuth := sortAlgorithmsMap()
+	keysKEX := testsKEXAlgorithms
+	keysAuth := testsAuthAlgorithms
 
 	if !*pqtls {
 
