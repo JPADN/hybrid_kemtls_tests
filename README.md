@@ -223,7 +223,7 @@ The Root CAs can be generated with the `gen_all_root.sh` script. Run it from the
 
 **Server:**
 ```
-go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run launch_servers.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
 -hybridroot dilithium
@@ -231,7 +231,7 @@ go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtl
 
 **Client:**
 ```
-go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run launch_client.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
 -ipclient 127.0.0.1 \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
@@ -242,7 +242,7 @@ go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls
 
 **Server:**
 ```
-go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run launch_servers.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
 -hybridroot dilithium \
@@ -251,7 +251,7 @@ go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtl
 
 **Client:**
 ```
-go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run launch_client.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
 -ipclient 127.0.0.1 \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
@@ -263,7 +263,7 @@ go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls
 
 **(Hybrid KEMTLS) Server:**
 ```
-go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run launch_servers.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
 -ipserver 127.0.0.1 \
 -kex P256_Kyber512 \
 -hybridroot dilithium \
@@ -272,7 +272,7 @@ go run launch_servers.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtl
 
 **(Hybrid KEMTLS) Gobench:**
 ```
-go run gobench.go hybrid_server_kemtls.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run gobench.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
 -benchkex P256_Kyber512 \
 -benchauth P256_Kyber512 \
 -hybridroot dilithium \

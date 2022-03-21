@@ -1,8 +1,5 @@
 package main
 
-// Run with:
-// go run launch_client.go hybrid_server_kemtls.go parse_hybrid_root.go stats_kemtls.go stats_pqtls.go plot_functions.go -ip 127.0.0.1 -tlspeer client -handshakes 10
-
 import (
 	"crypto/kem"
 	"flag"
