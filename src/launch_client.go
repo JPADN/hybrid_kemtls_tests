@@ -65,6 +65,7 @@ func main() {
 				k, kem.ID(clientConfig.CurvePreferences[0]))
 
 			var timingsFullProtocol []float64
+			var timingsSendAppData []float64
 			var timingsProcessServerHello []float64
 			var timingsWriteClientHello []float64
 			var timingsWriteKEMCiphertext []float64
@@ -84,15 +85,16 @@ func main() {
 					log.Fatal(err)
 				}
 				timingsFullProtocol = append(timingsFullProtocol, float64(timingState.clientTimingInfo.FullProtocol)/float64(time.Millisecond))
+				timingsSendAppData = append(timingsSendAppData, float64(timingState.clientTimingInfo.SendAppData)/float64(time.Millisecond))
 				timingsProcessServerHello = append(timingsProcessServerHello, float64(timingState.clientTimingInfo.ProcessServerHello)/float64(time.Millisecond))
 				timingsWriteClientHello = append(timingsWriteClientHello, float64(timingState.clientTimingInfo.WriteClientHello)/float64(time.Millisecond))
 				timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, float64(timingState.clientTimingInfo.WriteKEMCiphertext)/float64(time.Millisecond))
 			}
 
 			//save results first
-			kemtlsSaveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes)
+			kemtlsSaveCSV(timingsFullProtocol, timingsSendAppData, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes)
 
-			algoResults = kemtlsComputeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
+			algoResults = kemtlsComputeStats(timingsFullProtocol, timingsSendAppData, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
 			algoResults.kexName = k
 			algoResults.authName = k
 
@@ -100,8 +102,10 @@ func main() {
 
 			if re.MatchString(k) {
 				//boxplot data for hybrids
-				boxPlotValues = append(boxPlotValues, (timingsFullProtocol))
+				boxPlotValues = append(boxPlotValues, (timingsFullProtocol))				
 				kexNames = append(kexNames, k)
+
+				// TODO: boxplot SendAppData data
 			}
 
 			port++
