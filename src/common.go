@@ -535,20 +535,20 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 				fmt.Printf("Handshake error %v", err)
 			}
 
-			//server responds
-			n, err := server.Write([]byte(serverMsg))
-			if n != len(serverMsg) || err != nil {
-				//error
-				fmt.Print(err)
-				fmt.Print("error 3 %v", err)
-			}
-
 			//server read client hello
-			n, err = server.Read(buf)
+			n, err := server.Read(buf)
 			if err != nil || n != len(clientMsg) {
 				fmt.Print(err)
 				fmt.Print("error 2 %v", err)
 			}
+
+			//server responds
+			n, err = server.Write([]byte(serverMsg))
+			if n != len(serverMsg) || err != nil {
+				//error
+				fmt.Print(err)
+				fmt.Print("error 3 %v", err)
+			}			
 
 			if ignoreFirstConn {
 				continue
@@ -636,14 +636,14 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 		}
 		defer client.Close()
 
-		timer := time.Now		
-		start := timer()
-	
+		// timer := time.Now		
+		// start := timer()				
+
+		client.Write([]byte(clientMsg))
+
 		_, err = client.Read(buf)
 
-		timingState.clientTimingInfo.FullProtocol = timingState.clientTimingInfo.FullProtocol + timer().Sub(start)
-
-		client.Write([]byte(clientMsg))		
+		// timingState.clientTimingInfo.FullProtocol = timingState.clientTimingInfo.FullProtocol + timer().Sub(start)
 
 		cconnState = client.ConnectionState()
 

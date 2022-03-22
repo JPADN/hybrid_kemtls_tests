@@ -281,10 +281,10 @@ func NewConfiguration() *Configuration {
 		cconnState := client.ConnectionState()
 				
 		if err != nil {
-			fmt.Println("Error establishing first connection for PQTLS (cached) mode:")
+			fmt.Println("Error establishing first connection for KEMTLS-PDK")
 			log.Fatal(err)
 		} else {
-			fmt.Println("Sucess establishing first connection for cached mode:")
+			fmt.Println("Success establishing first connection for KEMTLS-PDK")
 		}
 
 		configuration.myClient.TLSConfig.CachedCert = cconnState.CertificateMessage		
