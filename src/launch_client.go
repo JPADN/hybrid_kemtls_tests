@@ -71,7 +71,7 @@ func main() {
 			var timingsWriteKEMCiphertext []float64
 
 			if *cachedCert {
-				_, connState, err := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
+				_, connState, err, _ := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
 				if err != nil {
 					fmt.Println("Error establishing first connection for PDK mode:")
 					log.Fatal(err)
@@ -80,9 +80,11 @@ func main() {
 			}
 
 			for i := 0; i < *handshakes; i++ {
-				timingState, _, err := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
-				if err != nil {
-					log.Fatal(err)
+				timingState, _, err, success := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
+				if err != nil || success == false {
+					//log.Fatal(err)
+					i--
+					continue //do not count this handshake timing
 				}
 				timingsFullProtocol = append(timingsFullProtocol, float64(timingState.clientTimingInfo.FullProtocol)/float64(time.Millisecond))
 				timingsSendAppData = append(timingsSendAppData, float64(timingState.clientTimingInfo.SendAppData)/float64(time.Millisecond))
@@ -146,7 +148,7 @@ func main() {
 				//var timingsWriteKEMCiphertext []float64
 
 				if *cachedCert {
-					_, connState, err := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
+					_, connState, err, _ := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
 					if err != nil {
 						fmt.Println("Error establishing first connection for PQTLS (cached) mode:")
 						log.Fatal(err)
@@ -155,9 +157,11 @@ func main() {
 				}
 
 				for i := 0; i < *handshakes; i++ {
-					timingState, _, err := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
-					if err != nil {
-						log.Fatal(err)
+					timingState, _, err, success := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
+					if err != nil || success == false{
+						//log.Fatal(err)
+						i--
+						continue
 					}
 					timingsFullProtocol = append(timingsFullProtocol, float64(timingState.clientTimingInfo.FullProtocol)/float64(time.Millisecond))
 					timingsProcessServerHello = append(timingsProcessServerHello, float64(timingState.clientTimingInfo.ProcessServerHello)/float64(time.Millisecond))

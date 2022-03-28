@@ -264,7 +264,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 
 	//fix for testing remotely.
 	if hostName == "0.0.0.0" {
-		hostName = "34.116.206.139"
+		hostName = "34.116.197.232" //"34.116.206.139"
 	}
 
 	var _host string = hostName
@@ -501,7 +501,7 @@ func (ti *timingInfo) eventHandler(event tls.CFEvent) {
 }
 
 // Performs the Test connections in the server side or the client side
-func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer string, ipserver string, port string) (timingState timingInfo, cconnState tls.ConnectionState, err error) {	
+func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer string, ipserver string, port string) (timingState timingInfo, cconnState tls.ConnectionState, err error, success bool) {	
 	tlsConfig.CFEventHandler = timingState.eventHandler
 	
 	if peer == "server" {
@@ -565,7 +565,8 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 
 					if *clientAuth {
 						if !cconnState.DidClientAuthentication {
-							panic("Server unsuccessful PQTLS with mutual authentication")
+							fmt.Println("Server unsuccessful PQTLS with mutual authentication")
+							continue
 						}
 					}
 
@@ -591,14 +592,16 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 						timingsWriteServerHello = nil
 					}
 				} else {
-					panic("Server unsuccessful PQTLS")
+					fmt.Println("Server unsuccessful PQTLS")
+					continue
 				}
 			} else {
 				if cconnState.DidKEMTLS {
 
 					if *clientAuth {
 						if !cconnState.DidClientAuthentication {
-							panic("Server unsuccessful PQTLS with mutual authentication")
+							fmt.Println("Server unsuccessful PQTLS with mutual authentication")
+							continue
 						}
 					}
 
@@ -620,7 +623,8 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 					}
 
 				} else {
-					panic("Server unsuccessful KEMTLS")
+					fmt.Println("Server unsuccessful KEMTLS")
+					continue
 				}
 			}
 		}
@@ -650,14 +654,16 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 					if cconnState.DidClientAuthentication {
 						log.Println("Client Success using PQTLS with mutual authentication")
 					} else {
-						panic("Client unsuccessful PQTLS with mutual authentication")
+						log.Println("Client unsuccessful PQTLS with mutual authentication")
+						return timingState, cconnState, nil, false
 					}
 
 				} else {
 					log.Println("Client Success using PQTLS")
 				}
 			} else {
-				panic("Client unsuccessful PQTLS")
+				log.Println("Client unsuccessful PQTLS")
+				return timingState, cconnState, nil, false
 			}
 
 		} else {
@@ -667,7 +673,8 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 					if cconnState.DidClientAuthentication {
 						log.Println("Client Success using KEMTLS with mutual authentication")
 					} else {
-						panic("Client unsuccessful KEMTLS with mutual authentication")
+						log.Println("Client unsuccessful KEMTLS with mutual authentication")
+						return timingState, cconnState, nil, false		
 					}
 
 				} else {
@@ -675,12 +682,13 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 				}
 
 			} else {
-				panic("Client unsuccessful KEMTLS")
+				log.Println("Client unsuccessful KEMTLS")
+				return timingState, cconnState, nil, false
 			}
 		}
 	}
 
-	return timingState, cconnState, nil
+	return timingState, cconnState, nil, true
 }
 
 func launchHTTPSServer(serverConfig *tls.Config, port string) {
