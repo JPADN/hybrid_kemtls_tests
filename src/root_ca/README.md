@@ -1,1 +1,1 @@
-This is where the Root CA certificates and keys are stored
+Root CA certificates and keys diretory

@@ -15,48 +15,7 @@ import (
 	"crypto/elliptic"
 	"encoding/asn1"
 	"encoding/hex"
-
-	"fmt"
-	"io"
 )
-
-// Development utility only
-// Remove later
-func countFileLines() {
-
-	file, err := os.Open("hybrid_root_ca.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	r := bufio.NewReader(file)
-	max_count := 0
-	count := 0
-
-	for {
-		if c, _, err := r.ReadRune(); err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				log.Fatal(err)
-			}
-		} else {
-			if string(c) == "\n" {
-				if count > max_count {
-					max_count = count
-				}
-
-				count = 0
-
-			} else {
-				count = count + 1
-			}
-		}
-	}
-
-	fmt.Println(max_count)
-}
 
 func constructHybridRoot(rootFamily string, securityLevel int) (*x509.Certificate, *liboqs_sig.PrivateKey) {
 

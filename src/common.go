@@ -636,14 +636,9 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 		}
 		defer client.Close()
 
-		// timer := time.Now		
-		// start := timer()				
-
 		client.Write([]byte(clientMsg))
 
-		_, err = client.Read(buf)
-
-		// timingState.clientTimingInfo.FullProtocol = timingState.clientTimingInfo.FullProtocol + timer().Sub(start)
+		_, err = client.Read(buf)		
 
 		cconnState = client.ConnectionState()
 

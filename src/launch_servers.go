@@ -1,7 +1,5 @@
 package main
 
-// Command to run: (similar as launch_client)
-
 import (
 	"crypto/tls"
 	"flag"

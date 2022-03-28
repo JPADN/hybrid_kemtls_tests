@@ -1,15 +1,19 @@
 *.csv
 *.pem
 *.txt
+*.crt
+*.key
+
 src/graphs/*.pdf
 src/graphs/*.html
+
+.vscode/
+liboqs/
+liboqs-go/
+
+# Local development dirs/files
 temp_client/
 temp_server/
 temp_root/
 clean.sh
 debug.sh
-*.crt
-*.key
-.vscode/
-liboqs/
-liboqs-go/

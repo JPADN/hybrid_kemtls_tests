@@ -131,7 +131,6 @@ func kemtlsInitCSVServer() {
 	csvFile.Close()
 }
 
-//func kemtlsSaveCSV(boxPlotValues []plotter.Values, names []string, hs int) {
 func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, name string, hs int) {
 	csvFile, err := os.OpenFile("csv/kemtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {

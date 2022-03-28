@@ -1,10 +1,6 @@
 package main
 
 import (
-
-	//"github.com/go-echarts/go-echarts/v2/charts"
-	//"github.com/go-echarts/go-echarts/v2/opts"
-
 	"image/color"
 	"io"
 	"os"
@@ -19,20 +15,6 @@ import (
 	"gonum.org/v1/plot/vg"
 	"math"
 )
-
-//To use this, get with 'go get gonum.org/v1/plot/...'
-//go mod init <our_project_name>
-//go mod tidy
-
-//https://github.com/gonum/plot/wiki/Example-plots
-
-/*func generateBarItems() []opts.BarData {
-	items := make([]opts.BarData, 0)
-	for i := 0; i < itemCnt; i++ {
-		items = append(items, opts.BarData{Value: rand.Intn(300)})
-	}
-	return items
-}*/
 
 const (
 	metricCompletionTime = "Avg Completion Time - Client (ms)"
