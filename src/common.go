@@ -693,7 +693,17 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 
 func launchHTTPSServer(serverConfig *tls.Config, port string) {
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-	err := http.ListenAndServeTLSWithConfig(":"+ port, "", "", serverConfig, nil)
+	
+	addr := ":"+ port
+
+	server := &http.Server{
+		Addr: addr, 
+		Handler: nil,
+		TLSConfig: serverConfig,
+	}
+
+	err := server.ListenAndServeTLS("", "")
+	
 	if err != nil {
 			log.Fatal("ListenAndServe: ", err)
 	}
