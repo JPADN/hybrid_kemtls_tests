@@ -52,7 +52,7 @@ func main() {
 			strport := fmt.Sprintf("%d", port)
 			fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
 
-			clientConfig, err := initClientAndAuth(k, "")
+			clientConfig, err := initClientAndAuth(k, k)
 			if err != nil {
 				log.Fatal(err)
 			}
