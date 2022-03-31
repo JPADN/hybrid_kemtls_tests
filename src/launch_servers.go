@@ -90,8 +90,21 @@ func launchServer() {
 				log.Fatal(err)
 			}
 
-			authCurveID := kexCurveID
+			var authCurveID tls.CurveID
 
+			if *isHTTP {
+				if *auth != "" {
+					authCurveID, err = nameToCurveID(*auth)
+					if err != nil {
+						panic(err)
+					}
+				} else {
+					authCurveID = kexCurveID	
+				}				
+			} else {
+				authCurveID = kexCurveID
+			}
+			
 			securityLevelNum = getSecurityLevel(k)
 
 			rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)

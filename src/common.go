@@ -59,6 +59,7 @@ var (
 		"NTRU_HPS_4096_1229": tls.NTRU_HPS_4096_1229, "P521_NTRU_HPS_4096_1229": tls.P521_NTRU_HPS_4096_1229,
 		"NTRU_HRSS_701": tls.NTRU_HRSS_701, "P384_NTRU_HRSS_701": tls.P384_NTRU_HRSS_701,
 		"NTRU_HRSS_1373": tls.NTRU_HRSS_1373, "P521_NTRU_HRSS_1373": tls.P521_NTRU_HRSS_1373,
+		"P256_Classic-McEliece-348864": tls.P256_Classic_McEliece_348864,
 	}
 
 	// Liboqs Algorithms
@@ -133,7 +134,12 @@ func initClientAndAuth(k, kAuth string) (*tls.Config, error) {
 		authSig := nameToHybridSigID(kAuth)
 		clientConfig = initClient(authSig, intCACert, intCAPriv, rootCertX509)
 	} else {
-		clientConfig = initClient(kexCurveID, intCACert, intCAPriv, rootCertX509)
+		authCurveID, err := nameToCurveID(kAuth)
+		if err != nil {
+			return nil, err
+		}	
+
+		clientConfig = initClient(authCurveID, intCACert, intCAPriv, rootCertX509)
 	}
 
 	clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
