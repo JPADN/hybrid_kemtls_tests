@@ -87,6 +87,7 @@ var (
 		"NTRU_HPS_4096_821", "P521_NTRU_HPS_4096_821",
 		"NTRU_HPS_4096_1229", "P521_NTRU_HPS_4096_1229",
 		"NTRU_HRSS_701", "P384_NTRU_HRSS_701", "NTRU_HRSS_1373", "P521_NTRU_HRSS_1373",
+		"P256_Classic-McEliece-348864",
 	}
 
 	testsAuthAlgorithms = []string{
