@@ -92,6 +92,12 @@ func launchServer() {
 
 			var authCurveID tls.CurveID
 
+			if *classicMcEliece {
+				authCurveID = tls.P256_Classic_McEliece_348864
+			} else {
+				authCurveID = kexCurveID
+			}
+
 			if *isHTTP {
 				if *auth != "" {
 					authCurveID, err = nameToCurveID(*auth)

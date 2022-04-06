@@ -37,7 +37,6 @@ func main() {
 	}
 
 	keysKEX := testsKEXAlgorithms
-	keysAuth := testsAuthAlgorithms
 
 	if !*pqtls {
 
@@ -49,10 +48,19 @@ func main() {
 
 		for _, k := range keysKEX {
 
+			var kAuth string
+			
+			if *classicMcEliece {
+				kAuth = "P256_Classic-McEliece-348864"
+			} else {
+				kAuth = k
+			}
+			
+
 			strport := fmt.Sprintf("%d", port)
 			fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
 
-			clientConfig, err := initClientAndAuth(k, k)
+			clientConfig, err := initClientAndAuth(k, kAuth)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -62,7 +70,7 @@ func main() {
 
 			fmt.Printf("Starting KEMTLS Handshakes: KEX Algorithm: %s (0x%x) - Auth Algorithm: %s (0x%x)\n",
 				k, kem.ID(clientConfig.CurvePreferences[0]),
-				k, kem.ID(clientConfig.CurvePreferences[0]))
+				kAuth, kem.ID(clientConfig.CurvePreferences[0]))
 
 			var timingsFullProtocol []float64
 			var timingsSendAppData []float64
@@ -98,7 +106,7 @@ func main() {
 
 			algoResults = kemtlsComputeStats(timingsFullProtocol, timingsSendAppData, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
 			algoResults.kexName = k
-			algoResults.authName = k
+			algoResults.authName = kAuth
 
 			algoResultsList = append(algoResultsList, algoResults)
 
@@ -124,6 +132,8 @@ func main() {
 
 		// list of structs
 		var algoResultsList []PQTLSClientResultsInfo
+
+		keysAuth := testsAuthAlgorithms
 
 		for _, kAuth := range keysAuth {
 

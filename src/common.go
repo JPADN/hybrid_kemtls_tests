@@ -36,6 +36,7 @@ var (
 	pqtls      = flag.Bool("pqtls", false, "PQTLS")
 	cachedCert = flag.Bool("cachedcert", false, "KEMTLS PDK or PQTLS(cached) server cert.")
 	isHTTP = flag.Bool("http", false, "HTTP server")
+	classicMcEliece = flag.Bool("classicmceliece", false, "Classic McEliece tests")
 )
 
 var (
