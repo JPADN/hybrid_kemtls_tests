@@ -42,6 +42,10 @@ func main() {
 
 	keysKEX := testsKEXAlgorithms
 
+	if *classicMcEliece {
+		keysKEX = append(keysKEX, "P256_Classic-McEliece-348864")
+	}
+
 	if !*pqtls {
 
 		// struct for the metrics

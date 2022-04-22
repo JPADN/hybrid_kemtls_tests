@@ -70,6 +70,10 @@ func launchServer() {
 	} else {
 		keysKEX = testsKEXAlgorithms
 		keysAuth = testsAuthAlgorithms
+
+		if *classicMcEliece {
+			keysKEX = append(keysKEX, "P256_Classic-McEliece-348864")
+		}
 	}
 
 	reLevel1 := regexp.MustCompile(`P256`)
