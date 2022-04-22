@@ -115,6 +115,18 @@ func kemtlsInitCSV() {
 	csvwriter.Write(header)
 	csvwriter.Flush()
 	csvFile.Close()
+
+	csvFile, err = os.Create("csv/kemtls-client-sizes.csv")
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+	csvwriter = csv.NewWriter(csvFile)
+
+	header = []string{"Algo", "ClientHello", "ClientKEMCiphertext", "Certificate"}
+
+	csvwriter.Write(header)
+	csvwriter.Flush()
+	csvFile.Close()
 }
 
 func kemtlsInitCSVServer() {
@@ -129,9 +141,23 @@ func kemtlsInitCSVServer() {
 	csvwriter.Write(header)
 	csvwriter.Flush()
 	csvFile.Close()
+
+	csvFile, err = os.Create("csv/kemtls-server-sizes.csv")
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+	csvwriter = csv.NewWriter(csvFile)
+
+	header = []string{"algo", "ServerHello", "Certificate", "ServerKEMCiphertext"}
+
+	csvwriter.Write(header)
+	csvwriter.Flush()
+	csvFile.Close()
 }
 
-func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, name string, hs int) {
+
+
+func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, name string, hs int, sizes map[string]uint32) {
 	csvFile, err := os.OpenFile("csv/kemtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
@@ -154,9 +180,28 @@ func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, 
 		csvwriter.Flush()
 	}
 	csvFile.Close()
+
+	csvFile, err = os.OpenFile("csv/kemtls-client-sizes.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		log.Fatalf("failed opening file: %s", err)
+	}
+
+	csvwriter = csv.NewWriter(csvFile)
+
+	arrayStr := []string{name, 
+		fmt.Sprintf("%d", sizes["ClientHello"]),
+		fmt.Sprintf("%d", sizes["ClientKEMCiphertext"]),
+		fmt.Sprintf("%d", sizes["Certificate"]),
+	}
+
+	if err := csvwriter.Write(arrayStr); err != nil {
+		log.Fatalln("error writing record to file", err)
+	}
+	csvwriter.Flush()
+	csvFile.Close()
 }
 
-func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsReadKEMCiphertext []float64, name string, hs int) {
+func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsReadKEMCiphertext []float64, name string, hs int, sizes map[string]uint32) {
 	csvFile, err := os.OpenFile("csv/kemtls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
@@ -176,6 +221,25 @@ func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello 
 		}
 		csvwriter.Flush()
 	}
+	csvFile.Close()
+
+	csvFile, err = os.OpenFile("csv/kemtls-server-sizes.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		log.Fatalf("failed opening file: %s", err)
+	}
+
+	csvwriter = csv.NewWriter(csvFile)
+
+	arrayStr := []string{name, 
+		fmt.Sprintf("%d", sizes["ServerHello"]),
+		fmt.Sprintf("%d", sizes["Certificate"]),
+		fmt.Sprintf("%d", sizes["ServerKEMCiphertext"]),
+	}
+
+	if err := csvwriter.Write(arrayStr); err != nil {
+		log.Fatalln("error writing record to file", err)
+	}
+	csvwriter.Flush()
 	csvFile.Close()
 }
 

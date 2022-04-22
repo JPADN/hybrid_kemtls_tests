@@ -1,4 +1,4 @@
-# The following flags are common for the client and the server
+# The following flags are mutual for the client and the server
 # -pqtls 
 # -clientauth 
 # -handshakes 
@@ -6,5 +6,8 @@
 # -rootkey 
 # -hybridroot
 # -cachedcert
+# -classicmceliece
 
-COMMON_FLAGS="-hybridroot dilithium -cachedcert"
+
+
+MUTUAL_FLAGS="-hybridroot dilithium -handshakes 10 -cachedcert"

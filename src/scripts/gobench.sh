@@ -22,4 +22,4 @@ go run gobench.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go 
 -u https://127.0.0.1:4433 \
 -c 10 \
 -t 5 \
-${COMMON_FLAGS}
+${MUTUAL_FLAGS}

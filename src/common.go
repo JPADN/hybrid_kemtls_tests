@@ -513,6 +513,9 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 	tlsConfig.CFEventHandler = timingState.eventHandler
 	
 	if peer == "server" {
+
+		handshakeSizes := make(map[string]uint32)
+		
 		var timingsFullProtocol []float64
 		var timingsWriteServerHello []float64
 		var timingsWriteCertVerify []float64
@@ -541,7 +544,7 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 			server := tls.Server(serverConn, tlsConfig)
 			if err := server.Handshake(); err != nil {
 				fmt.Printf("Handshake error %v", err)
-			}
+			}			
 
 			//server read client hello
 			n, err := server.Read(buf)
@@ -556,21 +559,21 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 				//error
 				fmt.Print(err)
 				fmt.Print("error 3 %v", err)
-			}			
+			}
 
 			if ignoreFirstConn {
-				continue
 				ignoreFirstConn = false
+				continue				
 			}		
 
 			countConnections++
 
-			cconnState = server.ConnectionState()
+			cconnState = server.ConnectionState()			
 
 			if *pqtls {
 
 				if cconnState.DidPQTLS {
-
+										
 					if *clientAuth {
 						if !cconnState.DidClientAuthentication {
 							fmt.Println("Server unsuccessful PQTLS with mutual authentication")
@@ -582,7 +585,7 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 					timingsWriteServerHello = append(timingsWriteServerHello, float64(timingState.serverTimingInfo.WriteServerHello)/float64(time.Millisecond))
 					timingsWriteCertVerify = append(timingsWriteCertVerify, float64(timingState.serverTimingInfo.WriteCertificateVerify)/float64(time.Millisecond))
 
-					if countConnections == *handshakes {
+					if countConnections == *handshakes {						
 						kKEX, e := curveIDToName(tlsConfig.CurvePreferences[0])
 						if e != nil {
 							fmt.Print("4 %v", err)
@@ -591,9 +594,14 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 						kAuth, err := authIDToName(priv.SigId)
 						if e != nil {
 							fmt.Print("5 %v", err)
-						}
+						}											
+
+						handshakeSizes["ServerHello"] = cconnState.ServerHandshakeSizes.ServerHello
+						handshakeSizes["Certificate"] = cconnState.ServerHandshakeSizes.Certificate
+						handshakeSizes["CertificateVerify"] = cconnState.ServerHandshakeSizes.CertificateVerify
+
 						//kAuth := tlsConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String()
-						pqtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsWriteCertVerify, kKEX, kAuth, countConnections)
+						pqtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsWriteCertVerify, kKEX, kAuth, countConnections, handshakeSizes)
 						countConnections = 0
 						timingsFullProtocol = nil
 						timingsWriteCertVerify = nil
@@ -608,7 +616,7 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 
 					if *clientAuth {
 						if !cconnState.DidClientAuthentication {
-							fmt.Println("Server unsuccessful PQTLS with mutual authentication")
+							fmt.Println("Server unsuccessful KEMTLS with mutual authentication")
 							continue
 						}
 					}
@@ -623,7 +631,11 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 							fmt.Print("4 %v", err)
 						}
 
-						kemtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsReadKEMCiphertext, kKEX, countConnections)
+						handshakeSizes["ServerHello"] = cconnState.ServerHandshakeSizes.ServerHello
+						handshakeSizes["Certificate"] = cconnState.ServerHandshakeSizes.Certificate
+						handshakeSizes["ServerKEMCiphertext"] = cconnState.ServerHandshakeSizes.ServerKEMCiphertext
+
+						kemtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsReadKEMCiphertext, kKEX, countConnections, handshakeSizes)
 						countConnections = 0
 						timingsFullProtocol = nil
 						timingsReadKEMCiphertext = nil

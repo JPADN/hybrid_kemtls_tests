@@ -102,7 +102,7 @@ If the `-http` flag is true, it must be supplied the Key Exchange and the Authen
 
 ### Optional flags
 
-`-http`: Instantiate an HTTP server that serves the page `static/index.html` at `:4433`
+`-http`: Instantiate an HTTPS server that serves the page `static/index.html` at `:4433`
 
 `-pqtls`: Instantiate a PQTLS server. 
 > If not present, then a KEMTLS server is instantiated by default
@@ -111,7 +111,7 @@ If the `-http` flag is true, it must be supplied the Key Exchange and the Authen
 
 `-handshakes`: Number of handshakes that the server will measure the timings and save it in a csv.
 
-`-cachedcert`: Server will perform KEMTLS-PDK
+`-cachedcert`: If KEMTLS is enabled, the server will perform KEMTLS-PDK. If PQTLS is enabled, the server will use the Cached Information Extension for PQTLS
 
 <br/>
 
@@ -146,7 +146,7 @@ If the Root CA uses classical algorithms, the following flags must be set:
 
 `-handshakes`: Number of handshakes that the client will perform 
 
-`-cachedcert`: Client will perform KEMTLS-PDK
+`-cachedcert`: If KEMTLS is enabled, the client will perform KEMTLS-PDK. If PQTLS is enabled, the client will use the Cached Information Extension for PQTLS
 
 
 <br/>
@@ -184,7 +184,7 @@ If the Root CA uses classical algorithms, the following flags must be set:
 
 `-clientauth`: Client will perform mutual authentication
 
-`-cachedcert`: Load test with KEMTLS-PDK
+`-cachedcert`: If KEMTLS is enabled, the load test will perform KEMTLS-PDK. If PQTLS is enabled, the load test will use the Cached Information Extension for PQTLS
 
 `-k`: Do HTTP keep-alive
 
@@ -284,4 +284,4 @@ go run gobench.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go 
 
 Alternatively, it can be used the scripts in the `scripts/` directory:
 
-`config.sh` defines the `COMMON_FLAGS` variable, which holds the common flags for the server, client and gobench
+`config.sh` defines the `MUTUAL_FLAGS` variable, which holds the mutual flags for the server, client and gobench

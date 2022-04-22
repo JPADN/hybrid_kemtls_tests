@@ -100,9 +100,21 @@ func pqtlsInitCSV() {
 	csvwriter.Write(header)
 	csvwriter.Flush()
 	csvFile.Close()
+
+	csvFile, err = os.Create("csv/pqtls-client-sizes.csv")
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+	csvwriter = csv.NewWriter(csvFile)
+
+	header = []string{"KEXAlgo", "authAlgo", "ClientHello", "Certificate", "CertificateVerify"}
+
+	csvwriter.Write(header)
+	csvwriter.Flush()
+	csvFile.Close()
 }
 
-func pqtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, name, authName string, hs int) {
+func pqtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, name, authName string, hs int, sizes map[string]uint32) {
 	csvFile, err := os.OpenFile("csv/pqtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
@@ -120,6 +132,25 @@ func pqtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []flo
 		}
 		csvwriter.Flush()
 	}
+	csvFile.Close()
+
+	csvFile, err = os.OpenFile("csv/pqtls-client-sizes.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		log.Fatalf("failed opening file: %s", err)
+	}
+
+	csvwriter = csv.NewWriter(csvFile)
+
+	arrayStr := []string{name, authName,
+		fmt.Sprintf("%d", sizes["ClientHello"]),		
+		fmt.Sprintf("%d", sizes["Certificate"]),
+		fmt.Sprintf("%d", sizes["CertificateVerify"]),
+	}
+
+	if err := csvwriter.Write(arrayStr); err != nil {
+		log.Fatalln("error writing record to file", err)
+	}
+	csvwriter.Flush()
 	csvFile.Close()
 }
 
@@ -142,9 +173,22 @@ func pqtlsInitCSVServer() {
 	csvwriter.Write(header)
 	csvwriter.Flush()
 	csvFile.Close()
+
+	
+	csvFile, err = os.Create("csv/pqtls-server-sizes.csv")
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+	csvwriter = csv.NewWriter(csvFile)
+
+	header = []string{"KEXAlgo", "authAlgo", "ServerHello", "Certificate", "CertificateVerify"}
+
+	csvwriter.Write(header)
+	csvwriter.Flush()
+	csvFile.Close()
 }
 
-func pqtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsWriteCertVerify []float64, name string, authName string, hs int) {
+func pqtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsWriteCertVerify []float64, name string, authName string, hs int, sizes map[string]uint32) {
 	csvFile, err := os.OpenFile("csv/pqtls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
@@ -164,4 +208,24 @@ func pqtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello [
 		csvwriter.Flush()
 	}
 	csvFile.Close()
+
+	csvFile, err = os.OpenFile("csv/pqtls-server-sizes.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		log.Fatalf("failed opening file: %s", err)
+	}
+
+	csvwriter = csv.NewWriter(csvFile)
+
+	arrayStr := []string{name, authName, 
+		fmt.Sprintf("%d", sizes["ServerHello"]),
+		fmt.Sprintf("%d", sizes["Certificate"]),
+		fmt.Sprintf("%d", sizes["CertificateVerify"]),
+	}
+
+	if err := csvwriter.Write(arrayStr); err != nil {
+		log.Fatalln("error writing record to file", err)
+	}
+	csvwriter.Flush()
+	csvFile.Close()
+
 }

@@ -7,6 +7,7 @@ import (
 	"log"
 	"regexp"
 	"time"
+	"crypto/tls"
 
 	"gonum.org/v1/plot/plotter"
 )
@@ -18,6 +19,9 @@ func main() {
 	port := 4433
 	
 	var re *regexp.Regexp
+	
+	handshakeSizes := make(map[string]uint32)
+	var cconnState tls.ConnectionState
 
 	//boxPlot data
 	if *pqtls {
@@ -88,7 +92,11 @@ func main() {
 			}
 
 			for i := 0; i < *handshakes; i++ {
-				timingState, _, err, success := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
+				var timingState timingInfo
+				var err error
+				var success bool
+
+				timingState, cconnState, err, success = testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
 				if err != nil || success == false {
 					//log.Fatal(err)
 					i--
@@ -101,8 +109,12 @@ func main() {
 				timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, float64(timingState.clientTimingInfo.WriteKEMCiphertext)/float64(time.Millisecond))
 			}
 
+			handshakeSizes["ClientHello"] = cconnState.ClientHandshakeSizes.ClientHello			
+			handshakeSizes["ClientKEMCiphertext"] = cconnState.ClientHandshakeSizes.ClientKEMCiphertext
+			handshakeSizes["Certificate"] = cconnState.ClientHandshakeSizes.Certificate
+
 			//save results first
-			kemtlsSaveCSV(timingsFullProtocol, timingsSendAppData, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes)
+			kemtlsSaveCSV(timingsFullProtocol, timingsSendAppData, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes, handshakeSizes)
 
 			algoResults = kemtlsComputeStats(timingsFullProtocol, timingsSendAppData, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
 			algoResults.kexName = k
@@ -167,7 +179,11 @@ func main() {
 				}
 
 				for i := 0; i < *handshakes; i++ {
-					timingState, _, err, success := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
+					var timingState timingInfo
+					var err error
+					var success bool
+					
+					timingState, cconnState, err, success = testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
 					if err != nil || success == false{
 						//log.Fatal(err)
 						i--
@@ -179,8 +195,12 @@ func main() {
 					//timingsWriteKEMCiphertext = append(timingsWriteKEMCiphertext, float64(timingState.clientTimingInfo.WriteKEMCiphertext)/float64(time.Millisecond))
 				}
 
+				handshakeSizes["ClientHello"] = cconnState.ClientHandshakeSizes.ClientHello							
+				handshakeSizes["Certificate"] = cconnState.ClientHandshakeSizes.Certificate
+				handshakeSizes["CertificateVerify"] = cconnState.ClientHandshakeSizes.CertificateVerify
+
 				//save results first
-				pqtlsSaveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, k, kAuth, *handshakes)
+				pqtlsSaveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, k, kAuth, *handshakes, handshakeSizes)
 
 				algoResults = pqtlsComputeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, *handshakes)
 				algoResults.kexName = k
