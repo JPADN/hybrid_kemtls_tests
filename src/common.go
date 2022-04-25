@@ -596,8 +596,11 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 						}											
 
 						handshakeSizes["ServerHello"] = cconnState.ServerHandshakeSizes.ServerHello
+						handshakeSizes["EncryptedExtensions"] = cconnState.ServerHandshakeSizes.EncryptedExtensions
 						handshakeSizes["Certificate"] = cconnState.ServerHandshakeSizes.Certificate
+						handshakeSizes["CertificateRequest"] = cconnState.ServerHandshakeSizes.CertificateRequest
 						handshakeSizes["CertificateVerify"] = cconnState.ServerHandshakeSizes.CertificateVerify
+						handshakeSizes["Finished"] = cconnState.ServerHandshakeSizes.Finished
 
 						//kAuth := tlsConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String()
 						pqtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsWriteCertVerify, kKEX, kAuth, countConnections, handshakeSizes)
@@ -631,8 +634,11 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 						}
 
 						handshakeSizes["ServerHello"] = cconnState.ServerHandshakeSizes.ServerHello
+						handshakeSizes["EncryptedExtensions"] = cconnState.ServerHandshakeSizes.EncryptedExtensions
 						handshakeSizes["Certificate"] = cconnState.ServerHandshakeSizes.Certificate
+						handshakeSizes["CertificateRequest"] = cconnState.ServerHandshakeSizes.CertificateRequest
 						handshakeSizes["ServerKEMCiphertext"] = cconnState.ServerHandshakeSizes.ServerKEMCiphertext
+						handshakeSizes["Finished"] = cconnState.ServerHandshakeSizes.Finished
 
 						kemtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsReadKEMCiphertext, kKEX, countConnections, handshakeSizes)
 						countConnections = 0

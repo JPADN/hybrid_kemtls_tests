@@ -107,7 +107,7 @@ func pqtlsInitCSV() {
 	}
 	csvwriter = csv.NewWriter(csvFile)
 
-	header = []string{"KEXAlgo", "authAlgo", "ClientHello", "Certificate", "CertificateVerify"}
+	header = []string{"KEXAlgo", "authAlgo", "ClientHello", "Certificate", "CertificateVerify", "Finished", "Total"}
 
 	csvwriter.Write(header)
 	csvwriter.Flush()
@@ -141,10 +141,14 @@ func pqtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []flo
 
 	csvwriter = csv.NewWriter(csvFile)
 
+	totalSizes := sizes["ClientHello"] + sizes["Certificate"] + sizes["CertificateVerify"] + sizes["Finished"]
+
 	arrayStr := []string{name, authName,
 		fmt.Sprintf("%d", sizes["ClientHello"]),		
 		fmt.Sprintf("%d", sizes["Certificate"]),
 		fmt.Sprintf("%d", sizes["CertificateVerify"]),
+		fmt.Sprintf("%d", sizes["Finished"]),
+		fmt.Sprintf("%d", totalSizes),
 	}
 
 	if err := csvwriter.Write(arrayStr); err != nil {
@@ -181,7 +185,7 @@ func pqtlsInitCSVServer() {
 	}
 	csvwriter = csv.NewWriter(csvFile)
 
-	header = []string{"KEXAlgo", "authAlgo", "ServerHello", "Certificate", "CertificateVerify"}
+	header = []string{"KEXAlgo", "authAlgo", "ServerHello", "EncryptedExtensions", "Certificate", "CertificateRequest", "CertificateVerify", "Finished", "Total"}
 
 	csvwriter.Write(header)
 	csvwriter.Flush()
@@ -216,10 +220,16 @@ func pqtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello [
 
 	csvwriter = csv.NewWriter(csvFile)
 
+	totalSizes := sizes["ServerHello"] + sizes["EncryptedExtensions"] + sizes["Certificate"] + sizes["CertificateRequest"] + sizes["CertificateVerify"] + sizes["Finished"]
+
 	arrayStr := []string{name, authName, 
 		fmt.Sprintf("%d", sizes["ServerHello"]),
+		fmt.Sprintf("%d", sizes["EncryptedExtensions"]),
 		fmt.Sprintf("%d", sizes["Certificate"]),
+		fmt.Sprintf("%d", sizes["CertificateRequest"]),
 		fmt.Sprintf("%d", sizes["CertificateVerify"]),
+		fmt.Sprintf("%d", sizes["Finished"]),
+		fmt.Sprintf("%d", totalSizes),
 	}
 
 	if err := csvwriter.Write(arrayStr); err != nil {

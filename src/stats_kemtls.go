@@ -122,7 +122,7 @@ func kemtlsInitCSV() {
 	}
 	csvwriter = csv.NewWriter(csvFile)
 
-	header = []string{"Algo", "ClientHello", "ClientKEMCiphertext", "Certificate"}
+	header = []string{"Algo", "ClientHello", "ClientKEMCiphertext", "Certificate", "Finished", "Total"}
 
 	csvwriter.Write(header)
 	csvwriter.Flush()
@@ -148,7 +148,7 @@ func kemtlsInitCSVServer() {
 	}
 	csvwriter = csv.NewWriter(csvFile)
 
-	header = []string{"algo", "ServerHello", "Certificate", "ServerKEMCiphertext"}
+	header = []string{"algo", "ServerHello", "EncryptedExtensions", "Certificate", "CertificateRequest", "ServerKEMCiphertext", "Finished", "Total"}
 
 	csvwriter.Write(header)
 	csvwriter.Flush()
@@ -188,10 +188,14 @@ func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, 
 
 	csvwriter = csv.NewWriter(csvFile)
 
+	totalSizes := sizes["ClientHello"] + sizes["ClientKEMCiphertext"] + sizes["Certificate"] + sizes["Finished"]
+
 	arrayStr := []string{name, 
 		fmt.Sprintf("%d", sizes["ClientHello"]),
 		fmt.Sprintf("%d", sizes["ClientKEMCiphertext"]),
 		fmt.Sprintf("%d", sizes["Certificate"]),
+		fmt.Sprintf("%d", sizes["Finished"]),
+		fmt.Sprintf("%d", totalSizes),
 	}
 
 	if err := csvwriter.Write(arrayStr); err != nil {
@@ -230,10 +234,16 @@ func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello 
 
 	csvwriter = csv.NewWriter(csvFile)
 
+	totalSizes := sizes["ServerHello"] + sizes["EncryptedExtensions"] + sizes["Certificate"] + sizes["CertificateRequest"] + sizes["ServerKEMCiphertext"] + sizes["Finished"]
+
 	arrayStr := []string{name, 
 		fmt.Sprintf("%d", sizes["ServerHello"]),
+		fmt.Sprintf("%d", sizes["EncryptedExtensions"]),
 		fmt.Sprintf("%d", sizes["Certificate"]),
+		fmt.Sprintf("%d", sizes["CertificateRequest"]),
 		fmt.Sprintf("%d", sizes["ServerKEMCiphertext"]),
+		fmt.Sprintf("%d", sizes["Finished"]),
+		fmt.Sprintf("%d", totalSizes),
 	}
 
 	if err := csvwriter.Write(arrayStr); err != nil {

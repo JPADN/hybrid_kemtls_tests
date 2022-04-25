@@ -116,6 +116,7 @@ func main() {
 			handshakeSizes["ClientHello"] = cconnState.ClientHandshakeSizes.ClientHello			
 			handshakeSizes["ClientKEMCiphertext"] = cconnState.ClientHandshakeSizes.ClientKEMCiphertext
 			handshakeSizes["Certificate"] = cconnState.ClientHandshakeSizes.Certificate
+			handshakeSizes["Finished"] = cconnState.ClientHandshakeSizes.Finished
 
 			//save results first
 			kemtlsSaveCSV(timingsFullProtocol, timingsSendAppData, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes, handshakeSizes)
@@ -202,6 +203,7 @@ func main() {
 				handshakeSizes["ClientHello"] = cconnState.ClientHandshakeSizes.ClientHello							
 				handshakeSizes["Certificate"] = cconnState.ClientHandshakeSizes.Certificate
 				handshakeSizes["CertificateVerify"] = cconnState.ClientHandshakeSizes.CertificateVerify
+				handshakeSizes["Finished"] = cconnState.ClientHandshakeSizes.Finished
 
 				//save results first
 				pqtlsSaveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, k, kAuth, *handshakes, handshakeSizes)
