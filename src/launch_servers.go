@@ -139,7 +139,7 @@ func launchServer() {
 	} else {
 
 		i := 0
-		pqtlsInitCSVServer()
+		tlsInitCSVServer()
 
 		for _, kAuth := range keysAuth {
 
@@ -179,7 +179,14 @@ func launchServer() {
 
 				wg.Add(1)
 				//start
-				fmt.Println(fmt.Sprintf("%v", i) + " Starting " + k + " Hybrid PQTLS " + kAuth + " server at " + *IPserver + ":" + strport + "...")
+
+				if *classic {
+
+				} else {
+
+
+				}
+				fmt.Println(fmt.Sprintf("%v", i) + " Starting " + k + " TLS " + kAuth + " server at " + *IPserver + ":" + strport + "...")
 
 				startServerHybrid(clientHSMsg, serverHSMsg, serverConfig, *IPserver, strport)
 

@@ -29,13 +29,13 @@ var (
 	rootCert = flag.String("rootcert", "", "Path to the root CA certificate PEM file")
 	rootKey = flag.String("rootkey", "", "Path to the root CA private key PEM file")
 	hybridRootFamily = flag.String("hybridroot", "", "Hybrid Root CA Algorithm family name")
-	IPserver   = flag.String("ipserver", "", "IP of the KEMTLS/PQTLS Server")
-	IPclient   = flag.String("ipclient", "", "IP of the KEMTLS/PQTLS Client Auth Certificate")
+	IPserver   = flag.String("ipserver", "", "IP of the KEMTLS/TLS Server")
+	IPclient   = flag.String("ipclient", "", "IP of the KEMTLS/TLS Client Auth Certificate")
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
 	clientAuth = flag.Bool("clientauth", false, "Client authentication")
 	pqtls      = flag.Bool("pqtls", false, "PQTLS")
 	classic    = flag.Bool("classic", false, "TLS with classic algorithms")
-	cachedCert = flag.Bool("cachedcert", false, "KEMTLS PDK or PQTLS(cached) server cert.")
+	cachedCert = flag.Bool("cachedcert", false, "KEMTLS PDK or TLS(cached) server cert.")
 	isHTTP = flag.Bool("http", false, "HTTP server")
 	classicMcEliece = flag.Bool("classicmceliece", false, "Classic McEliece tests")
 )
@@ -598,7 +598,7 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 										
 					if *clientAuth {
 						if !cconnState.DidClientAuthentication {
-							fmt.Println("Server unsuccessful PQTLS with mutual authentication")
+							fmt.Println("Server unsuccessful TLS with mutual authentication")
 							continue
 						}
 					}
@@ -636,14 +636,14 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 						handshakeSizes["Finished"] = cconnState.ServerHandshakeSizes.Finished
 
 						//kAuth := tlsConfig.Certificates[0].Leaf.PublicKeyAlgorithm.String()
-						pqtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsWriteCertVerify, kKEX, kAuth, countConnections, handshakeSizes)
+						tlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsWriteCertVerify, kKEX, kAuth, countConnections, handshakeSizes)
 						countConnections = 0
 						timingsFullProtocol = nil
 						timingsWriteCertVerify = nil
 						timingsWriteServerHello = nil
 					}
 				} else {
-					fmt.Println("Server unsuccessful PQTLS")
+					fmt.Println("Server unsuccessful TLS")
 					continue
 				}
 			} else {

@@ -16,7 +16,7 @@ source config.sh
 
 cd ..
 
-go run gobench.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run gobench.go common.go parse_hybrid_root.go stats_tls.go stats_kemtls.go plot_functions.go \
 -benchkex P256_Kyber512 \
 -benchauth P256_Dilithium2 \
 -u https://127.0.0.1:4433 \

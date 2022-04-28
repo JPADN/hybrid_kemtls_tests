@@ -10,7 +10,7 @@ import (
 	"gonum.org/v1/plot/plotter"
 )
 
-type PQTLSClientResultsInfo struct {
+type TLSClientResultsInfo struct {
 	kexName                 string
 	authName                string
 	avgTotalTime            float64
@@ -21,7 +21,7 @@ type PQTLSClientResultsInfo struct {
 	stdevWriteClientHello   float64
 }
 
-type PQTLSServerResultsInfo struct {
+type TLSServerResultsInfo struct {
 	kexName              string
 	authName             string
 	avgTotalTime         float64
@@ -31,7 +31,7 @@ type PQTLSServerResultsInfo struct {
 }
 
 //Stats: Avg, Stdev.
-func pqtlsComputeStats(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, hs int) (r PQTLSClientResultsInfo) {
+func tlsComputeStats(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, hs int) (r TLSClientResultsInfo) {
 
 	//counts
 	var countTotalTime float64
@@ -64,7 +64,7 @@ func pqtlsComputeStats(timingsFullProtocol []float64, timingsProcessServerHello 
 }
 
 //print results
-func pqtlsPrintStatistics(results []PQTLSClientResultsInfo) {
+func tlsPrintStatistics(results []TLSClientResultsInfo) {
 	//header
 	fmt.Printf("%-47s | ", "TestName")
 	fmt.Printf("%-20s | ", "AvgClientTotalTime")
@@ -88,8 +88,8 @@ func pqtlsPrintStatistics(results []PQTLSClientResultsInfo) {
 	}
 }
 
-func pqtlsInitCSV() {
-	csvFile, err := os.Create("csv/pqtls-client.csv")
+func tlsInitCSV() {
+	csvFile, err := os.Create("csv/tls-client.csv")
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -101,7 +101,7 @@ func pqtlsInitCSV() {
 	csvwriter.Flush()
 	csvFile.Close()
 
-	csvFile, err = os.Create("csv/pqtls-client-sizes.csv")
+	csvFile, err = os.Create("csv/tls-client-sizes.csv")
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -114,8 +114,8 @@ func pqtlsInitCSV() {
 	csvFile.Close()
 }
 
-func pqtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, name, authName string, hs int, sizes map[string]uint32) {
-	csvFile, err := os.OpenFile("csv/pqtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+func tlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, name, authName string, hs int, sizes map[string]uint32) {
+	csvFile, err := os.OpenFile("csv/tls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}
@@ -134,7 +134,7 @@ func pqtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []flo
 	}
 	csvFile.Close()
 
-	csvFile, err = os.OpenFile("csv/pqtls-client-sizes.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	csvFile, err = os.OpenFile("csv/tls-client-sizes.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}
@@ -158,15 +158,15 @@ func pqtlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []flo
 	csvFile.Close()
 }
 
-func pqtlsResultsExporter(results []PQTLSClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
-	pqtlsPrintStatistics(results)
+func tlsResultsExporter(results []TLSClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
+	tlsPrintStatistics(results)
 	//plots are not needed (here) since:
 	//we are not comparing PQC-only vs Hybrid PQTLS
 	//we are not testing KEMTLS together with PQTLS
 }
 
-func pqtlsInitCSVServer() {
-	csvFile, err := os.Create("csv/pqtls-server.csv")
+func tlsInitCSVServer() {
+	csvFile, err := os.Create("csv/tls-server.csv")
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -179,7 +179,7 @@ func pqtlsInitCSVServer() {
 	csvFile.Close()
 
 	
-	csvFile, err = os.Create("csv/pqtls-server-sizes.csv")
+	csvFile, err = os.Create("csv/tls-server-sizes.csv")
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -192,8 +192,8 @@ func pqtlsInitCSVServer() {
 	csvFile.Close()
 }
 
-func pqtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsWriteCertVerify []float64, name string, authName string, hs int, sizes map[string]uint32) {
-	csvFile, err := os.OpenFile("csv/pqtls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+func tlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsWriteCertVerify []float64, name string, authName string, hs int, sizes map[string]uint32) {
+	csvFile, err := os.OpenFile("csv/tls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}
@@ -213,7 +213,7 @@ func pqtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello [
 	}
 	csvFile.Close()
 
-	csvFile, err = os.OpenFile("csv/pqtls-server-sizes.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	csvFile, err = os.OpenFile("csv/tls-server-sizes.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}

@@ -74,7 +74,7 @@ The Root CA files are written to the `root_ca/` directory.
 
 Launches various TLS servers for each combination of the Key Exchange and Authentication algorithms that are in the same security level (when performing KEMTLS, the same algorithm is used for the key exchange and authentication).
 
-The TLS servers will perform Hybrid KEMTLS or Hybrid PQTLS, depending on the flags that it receives.
+The TLS servers will perform Hybrid KEMTLS, Hybrid PQTLS or classic TLS, depending on the flags that it receives.
 
 
 ### Required flags
@@ -107,11 +107,13 @@ If the `-http` flag is true, it must be supplied the Key Exchange and the Authen
 `-pqtls`: Instantiate a PQTLS server. 
 > If not present, then a KEMTLS server is instantiated by default
 
+`-classic`: Instantiate a TLS server with classic algorithms
+
 `-clientauth`: Server will require mutual authentication
 
 `-handshakes`: Number of handshakes that the server will measure the timings and save it in a csv.
 
-`-cachedcert`: If KEMTLS is enabled, the server will perform KEMTLS-PDK. If PQTLS is enabled, the server will use the Cached Information Extension for PQTLS
+`-cachedcert`: If KEMTLS is enabled, the server will perform KEMTLS-PDK. If PQTLS or Classic mode is enabled, the server will use the Cached Information Extension for TLS
 
 <br/>
 
@@ -140,14 +142,15 @@ If the Root CA uses classical algorithms, the following flags must be set:
 `-pqtls`: Instantiate a PQTLS client. 
 > If not present, then a KEMTLS client is instantiated by default
 
+`-classic`: Instantiate a TLS client with classic algorithms
+
 `-clientauth`: Client will perform mutual authentication
 
 `-ipclient`: IP address of the client to be used in the client certificate
 
 `-handshakes`: Number of handshakes that the client will perform 
 
-`-cachedcert`: If KEMTLS is enabled, the client will perform KEMTLS-PDK. If PQTLS is enabled, the client will use the Cached Information Extension for PQTLS
-
+`-cachedcert`: If KEMTLS is enabled, the client will perform KEMTLS-PDK. If PQTLS or Classic mode is enabled, the server will use the Cached Information Extension for TLS
 
 <br/>
 
@@ -180,11 +183,13 @@ If the Root CA uses classical algorithms, the following flags must be set:
 
 ### Optional flags
 
-`-pqtls`: Instantiate a PQTLS client. If not present, then a KEMTLS client is instantiated
+`-pqtls`: Instantiate a PQTLS client. If neither `-pqtls` and `-classic` are present, then a KEMTLS client is instantiated
+
+`-classic`: Instantiate a TLS client with classic algorithms
 
 `-clientauth`: Client will perform mutual authentication
 
-`-cachedcert`: If KEMTLS is enabled, the load test will perform KEMTLS-PDK. If PQTLS is enabled, the load test will use the Cached Information Extension for PQTLS
+`-cachedcert`: If KEMTLS is enabled, the load test will perform KEMTLS-PDK. If KEMTLS is disabled, the load test will use the Cached Information Extension for TLS
 
 `-k`: Do HTTP keep-alive
 
@@ -223,7 +228,7 @@ The Root CAs can be generated with the `gen_all_root.sh` script. Run it from the
 
 **Server:**
 ```
-go run launch_servers.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run launch_servers.go common.go parse_hybrid_root.go stats_tls.go stats_kemtls.go plot_functions.go \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
 -hybridroot dilithium
@@ -231,7 +236,7 @@ go run launch_servers.go common.go parse_hybrid_root.go stats_pqtls.go stats_kem
 
 **Client:**
 ```
-go run launch_client.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run launch_client.go common.go parse_hybrid_root.go stats_tls.go stats_kemtls.go plot_functions.go \
 -ipclient 127.0.0.1 \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
@@ -242,7 +247,7 @@ go run launch_client.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemt
 
 **Server:**
 ```
-go run launch_servers.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run launch_servers.go common.go parse_hybrid_root.go stats_tls.go stats_kemtls.go plot_functions.go \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
 -hybridroot dilithium \
@@ -251,7 +256,7 @@ go run launch_servers.go common.go parse_hybrid_root.go stats_pqtls.go stats_kem
 
 **Client:**
 ```
-go run launch_client.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run launch_client.go common.go parse_hybrid_root.go stats_tls.go stats_kemtls.go plot_functions.go \
 -ipclient 127.0.0.1 \
 -ipserver 127.0.0.1 \
 -handshakes 10 \
@@ -263,7 +268,7 @@ go run launch_client.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemt
 
 **(Hybrid KEMTLS) Server:**
 ```
-go run launch_servers.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run launch_servers.go common.go parse_hybrid_root.go stats_tls.go stats_kemtls.go plot_functions.go \
 -ipserver 127.0.0.1 \
 -kex P256_Kyber512 \
 -hybridroot dilithium \
@@ -272,7 +277,7 @@ go run launch_servers.go common.go parse_hybrid_root.go stats_pqtls.go stats_kem
 
 **(Hybrid KEMTLS) Gobench:**
 ```
-go run gobench.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go \
+go run gobench.go common.go parse_hybrid_root.go stats_tls.go stats_kemtls.go plot_functions.go \
 -benchkex P256_Kyber512 \
 -benchauth P256_Kyber512 \
 -hybridroot dilithium \

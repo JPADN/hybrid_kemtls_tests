@@ -4,6 +4,6 @@ cd ..
 
 for dir in ${ALGS[*]}
 do
-go run generate_root.go common.go stats_pqtls.go stats_kemtls.go plot_functions.go parse_hybrid_root.go \
+go run generate_root.go common.go stats_tls.go stats_kemtls.go plot_functions.go parse_hybrid_root.go \
 -algo ${dir}
 done

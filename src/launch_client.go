@@ -36,7 +36,7 @@ func main() {
 
 	//prepare output file
 	if *pqtls || *classic {
-		pqtlsInitCSV()
+		tlsInitCSV()
 	} else {
 		kemtlsInitCSV()
 	}
@@ -152,10 +152,10 @@ func main() {
 	} else {
 
 		// struct for the metrics
-		var algoResults PQTLSClientResultsInfo
+		var algoResults TLSClientResultsInfo
 
 		// list of structs
-		var algoResultsList []PQTLSClientResultsInfo
+		var algoResultsList []TLSClientResultsInfo
 
 		for _, kAuth := range keysAuth {
 
@@ -171,7 +171,7 @@ func main() {
 					continue
 				}
 
-				fmt.Printf("Starting PQTLS Handshakes: KEX Algorithm: %s - Auth Algorithm: %s \n",
+				fmt.Printf("Starting TLS Handshakes: KEX Algorithm: %s - Auth Algorithm: %s \n",
 					k, kAuth) //note: removed 'authCurveID'
 
 				var timingsFullProtocol []float64
@@ -182,7 +182,7 @@ func main() {
 				if *cachedCert {
 					_, connState, err, _ := testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
 					if err != nil {
-						fmt.Println("Error establishing first connection for PQTLS (cached) mode:")
+						fmt.Println("Error establishing first connection for TLS (cached) mode:")
 						log.Fatal(err)
 					}
 					clientConfig.CachedCert = connState.CertificateMessage
@@ -211,9 +211,9 @@ func main() {
 				handshakeSizes["Finished"] = cconnState.ClientHandshakeSizes.Finished
 
 				//save results first
-				pqtlsSaveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, k, kAuth, *handshakes, handshakeSizes)
+				tlsSaveCSV(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, k, kAuth, *handshakes, handshakeSizes)
 
-				algoResults = pqtlsComputeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, *handshakes)
+				algoResults = tlsComputeStats(timingsFullProtocol, timingsProcessServerHello, timingsWriteClientHello, *handshakes)
 				algoResults.kexName = k
 				algoResults.authName = kAuth
 
@@ -228,7 +228,7 @@ func main() {
 				port++
 			}
 		}
-		pqtlsResultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
+		tlsResultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
 		fmt.Println("End of test.")
 	}
 }

@@ -11,8 +11,8 @@ cd ..
 
 ## Create a build
 GOKEMTLSPATH=/home/user/go-kemtls/bin/go       
-$GOKEMTLSPATH build launch_servers.go common.go parse_hybrid_root.go stats_pqtls.go stats_kemtls.go plot_functions.go
-$GOKEMTLSPATH build launch_client.go common.go parse_hybrid_root.go stats_kemtls.go stats_pqtls.go plot_functions.go 
+$GOKEMTLSPATH build launch_servers.go common.go parse_hybrid_root.go stats_tls.go stats_kemtls.go plot_functions.go
+$GOKEMTLSPATH build launch_client.go common.go parse_hybrid_root.go stats_kemtls.go stats_tls.go plot_functions.go 
 
 
 ## Start - Latency Variations
