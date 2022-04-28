@@ -1,4 +1,5 @@
 # The following flags are mutual for the client and the server
+# -classic
 # -pqtls 
 # -clientauth 
 # -handshakes 

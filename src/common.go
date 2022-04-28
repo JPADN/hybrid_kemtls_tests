@@ -34,6 +34,7 @@ var (
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
 	clientAuth = flag.Bool("clientauth", false, "Client authentication")
 	pqtls      = flag.Bool("pqtls", false, "PQTLS")
+	classic    = flag.Bool("classic", false, "TLS with classic algorithms")
 	cachedCert = flag.Bool("cachedcert", false, "KEMTLS PDK or PQTLS(cached) server cert.")
 	isHTTP = flag.Bool("http", false, "HTTP server")
 	classicMcEliece = flag.Bool("classicmceliece", false, "Classic McEliece tests")
@@ -74,9 +75,6 @@ var (
 		"P256": elliptic.P256(), "P384": elliptic.P384(), "P521": elliptic.P521(),
 	}
 
-	clientHSMsg = "hello, server"
-	serverHSMsg = "hello, client"
-
 	// Algorithms to be used in the handshake tests
 	testsKEXAlgorithms = []string{
 		"Kyber512", "P256_Kyber512", "Kyber768", "P384_Kyber768",
@@ -94,6 +92,14 @@ var (
 		"P384_Dilithium3",
 		"P521_Dilithium5", "P521_Falcon1024",
 	}
+	
+	// Classic algorithms (for both KEX and Auth) to be used in the handshake tests
+	testsClassicAlgorithms = []string {
+		"P256","P384", "P521",
+	}
+
+	clientHSMsg = "hello, server"
+	serverHSMsg = "hello, client"	
 )
 
 // Initialize client TLS configuration and certificate chain
@@ -109,7 +115,7 @@ func initClientAndAuth(k, kAuth string) (*tls.Config, error) {
 	
 	rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)	
 
-	if *pqtls {
+	if *pqtls || *classic {
 		var reLevel1, reLevel3, reLevel5 *regexp.Regexp
 
 		//want same levels for the algos
@@ -132,7 +138,7 @@ func initClientAndAuth(k, kAuth string) (*tls.Config, error) {
 			return nil, nil
 		}
 
-		authSig := nameToHybridSigID(kAuth)
+		authSig := nameToSigID(kAuth)
 		clientConfig = initClient(authSig, intCACert, intCAPriv, rootCertX509)
 	} else {
 		authCurveID, err := nameToCurveID(kAuth)
@@ -223,20 +229,21 @@ func nameToCurveID(name string) (tls.CurveID, error) {
 	return curveID, nil
 }
 
-func nameToHybridSigID(name string) interface{} {
+func nameToSigID(name string) interface{} {
 	var sigId interface{}
 	var prs bool
-	
-	sigId, prs = hsHybridAuthAlgorithms[name]
-	if prs {
-		return sigId
-	}
 
-	sigId, prs = hsClassicAuthAlgorithms[name]
-	if prs {
-		return sigId
+	if *classic {
+		sigId, prs = hsClassicAuthAlgorithms[name]
+		if prs {
+			return sigId
+		}
+	} else {
+		sigId, prs = hsHybridAuthAlgorithms[name]
+		if prs {
+			return sigId
+		}
 	}
-	
 	panic("Algorithm not found")
 }
 
@@ -249,10 +256,22 @@ func curveIDToName(cID tls.CurveID) (name string, e error) {
 	return "0", errors.New("ERROR: Algorithm not found")
 }
 
-func authIDToName(lID liboqs_sig.ID) (name string, e error) {
-	for n, id := range hsHybridAuthAlgorithms {
-		if id == lID {
-			return n, nil
+func sigIDToName(sigID interface{}) (name string, e error) {
+
+	if *classic {
+		sigEC := sigID.(elliptic.Curve)
+		for n, id := range hsClassicAuthAlgorithms {
+			if id == sigEC {
+				return n, nil
+			}
+		}
+	} else {
+		lID := sigID.(liboqs_sig.ID)
+		
+		for n, id := range hsHybridAuthAlgorithms {
+			if id == lID {
+				return n, nil
+			}
 		}
 	}
 	return "0", errors.New("ERROR: Auth Algorithm not found")
@@ -391,6 +410,8 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 	if *pqtls {
 		cfg.PQTLSEnabled = true
 		serverKeyUsage = x509.KeyUsageDigitalSignature
+	} else if *classic {
+		serverKeyUsage = x509.KeyUsageDigitalSignature
 	} else {
 		cfg.KEMTLSEnabled = true
 		serverKeyUsage = x509.KeyUsageKeyAgreement
@@ -443,6 +464,8 @@ func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 
 	if *pqtls {
 		ccfg.PQTLSEnabled = true
+		clientKeyUsage = x509.KeyUsageDigitalSignature
+	} else if *classic {
 		clientKeyUsage = x509.KeyUsageDigitalSignature
 	} else {
 		ccfg.KEMTLSEnabled = true
@@ -569,9 +592,9 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 
 			cconnState = server.ConnectionState()			
 
-			if *pqtls {
+			if *pqtls || *classic {
 
-				if cconnState.DidPQTLS {
+				if (*pqtls && cconnState.DidPQTLS) || *classic {
 										
 					if *clientAuth {
 						if !cconnState.DidClientAuthentication {
@@ -584,16 +607,26 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 					timingsWriteServerHello = append(timingsWriteServerHello, float64(timingState.serverTimingInfo.WriteServerHello)/float64(time.Millisecond))
 					timingsWriteCertVerify = append(timingsWriteCertVerify, float64(timingState.serverTimingInfo.WriteCertificateVerify)/float64(time.Millisecond))
 
-					if countConnections == *handshakes {						
+					if countConnections == *handshakes {
+						var kAuth string
+						var err error
+
 						kKEX, e := curveIDToName(tlsConfig.CurvePreferences[0])
 						if e != nil {
 							fmt.Print("4 %v", err)
 						}
-						priv, _ := tlsConfig.Certificates[0].PrivateKey.(*liboqs_sig.PrivateKey)
-						kAuth, err := authIDToName(priv.SigId)
-						if e != nil {
+
+						if *classic {							
+							priv, _ := tlsConfig.Certificates[0].PrivateKey.(*ecdsa.PrivateKey)
+							kAuth, err = sigIDToName(priv.PublicKey.Curve)							
+						} else {							
+							priv, _ := tlsConfig.Certificates[0].PrivateKey.(*liboqs_sig.PrivateKey)
+							kAuth, err = sigIDToName(priv.SigId)
+						}
+						
+						if err != nil {
 							fmt.Print("5 %v", err)
-						}											
+						}
 
 						handshakeSizes["ServerHello"] = cconnState.ServerHandshakeSizes.ServerHello
 						handshakeSizes["EncryptedExtensions"] = cconnState.ServerHandshakeSizes.EncryptedExtensions
@@ -690,7 +723,17 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 				log.Println("Client unsuccessful PQTLS")
 				return timingState, cconnState, nil, false
 			}
-
+		} else if *classic {
+			if *clientAuth {
+				if cconnState.DidClientAuthentication {
+					log.Println("Client Success using TLS with mutual authentication")
+				} else {
+					log.Println("Client unsuccessful TLS with mutual authentication")
+					return timingState, cconnState, nil, false
+				}			
+			} else {
+				log.Println("Client Success using TLS")
+			}
 		} else {
 			if cconnState.DidKEMTLS {
 				if *clientAuth {

@@ -68,8 +68,13 @@ func launchServer() {
 		keysKEX = []string{*kex}
 		keysAuth = []string{*auth}
 	} else {
-		keysKEX = testsKEXAlgorithms
-		keysAuth = testsAuthAlgorithms
+		if *classic {
+			keysKEX = testsClassicAlgorithms
+			keysAuth = testsClassicAlgorithms
+		} else {  // PQTLS and KEMTLS
+			keysKEX = testsKEXAlgorithms
+			keysAuth = testsAuthAlgorithms
+		}		
 
 		if *classicMcEliece {
 			keysKEX = append(keysKEX, "P256_Classic-McEliece-348864")
@@ -83,7 +88,7 @@ func launchServer() {
 	securityLevelNum := 1
 	securityLevelKauthNum := 1
 
-	if !*pqtls {
+	if !*pqtls && !*classic {
 		kemtlsInitCSVServer()
 		//for each algo
 		for _, k := range keysKEX {
@@ -163,7 +168,7 @@ func launchServer() {
 					continue
 				}
 
-				authSigID := nameToHybridSigID(kAuth)
+				authSigID := nameToSigID(kAuth)
 
 				rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)
 
