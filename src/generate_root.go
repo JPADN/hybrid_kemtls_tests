@@ -134,7 +134,7 @@ func main() {
 
 	flag.Parse()
 	
-	rootSigInterface := nameToHybridSigID(*rootAlgo)
+	rootSigInterface := nameToSigID(*rootAlgo)
 
 	rootLiboqsID, ok := rootSigInterface.(liboqs_sig.ID)
 

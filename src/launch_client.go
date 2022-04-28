@@ -32,21 +32,28 @@ func main() {
 
 	var boxPlotValues []plotter.Values
 	var kexNames []string
+	var keysKEX, keysAuth []string
 
 	//prepare output file
-	if *pqtls {
+	if *pqtls || *classic {
 		pqtlsInitCSV()
 	} else {
 		kemtlsInitCSV()
 	}
 
-	keysKEX := testsKEXAlgorithms
+	if *classic {
+		keysKEX = testsClassicAlgorithms
+		keysAuth = testsClassicAlgorithms
+	} else {  // PQTLS and KEMTLS
+		keysKEX = testsKEXAlgorithms
+		keysAuth = testsAuthAlgorithms
+	}
 
 	if *classicMcEliece {
 		keysKEX = append(keysKEX, "P256_Classic-McEliece-348864")
 	}
 
-	if !*pqtls {
+	if !*pqtls && !*classic {
 
 		// struct for the metrics
 		var algoResults KEMTLSClientResultsInfo
@@ -148,8 +155,6 @@ func main() {
 
 		// list of structs
 		var algoResultsList []PQTLSClientResultsInfo
-
-		keysAuth := testsAuthAlgorithms
 
 		for _, kAuth := range keysAuth {
 
