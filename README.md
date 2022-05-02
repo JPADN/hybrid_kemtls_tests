@@ -18,9 +18,7 @@ sudo apt install astyle cmake gcc ninja-build libssl-dev python3-pytest python3-
 
 3. Clone the Hybrid KEMTLS Go Standard Library repository;
 
-4. Checkout to the `hybrid_kemtls_bindings` branch: `$ git checkout hybrid_kemtls_bindings`
-
-5. Run the installation script: `. install.sh`
+4. Run the installation script: `. install.sh`
 > You must precisely follow this syntax, in order to execute the script under the current shell
 >
 > It will clone and compile Liboqs and Liboqs-Go, and compile Hybrid KEMTLS Go
