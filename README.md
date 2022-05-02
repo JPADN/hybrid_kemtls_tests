@@ -54,7 +54,7 @@ P256_Falcon512, P521_Falcon1024
 
 There are three programs: `launch_server`, `launch_client`, `gobench`, `generate_root`
 
-The first step is to create a Root CA to be used by the server and the client. For that, the `generate_cert.go` will be used.
+The first step is to create a Root CA to be used by the server and the client. For that, the `generate_root.go` will be used.
 
 <br/>
 
@@ -66,7 +66,11 @@ The Root CA files are written to the `root_ca/` directory.
 
 ### Required flags:
 
-`-rootalgo`:
+`-rootalgo`: Root CA algorithm
+
+### Optional flags
+
+`-classic`: Generate a Root CA with classic algorithms
 
 <br/>
 
