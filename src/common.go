@@ -10,6 +10,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	// "encoding/asn1"
 	"errors"
 	"flag"
 	"fmt"
@@ -38,6 +39,7 @@ var (
 	cachedCert = flag.Bool("cachedcert", false, "KEMTLS PDK or TLS(cached) server cert.")
 	isHTTP = flag.Bool("http", false, "HTTP server")
 	classicMcEliece = flag.Bool("classicmceliece", false, "Classic McEliece tests")
+	certTransparency = flag.Bool("ct", false, "Simulate Certificate Transparency")
 )
 
 var (
@@ -381,6 +383,15 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		certTemplate.KeyUsage |= x509.KeyUsageCertSign
 	}
 
+	if *certTransparency && !isCA {				
+		sctExt, err := x509.CreateSCT(rand.Reader, &certTemplate, signer, pub, signerPrivKey)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		certTemplate.ExtraExtensions = []pkix.Extension{sctExt}
+	}
+
 	if isSelfSigned {
 		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, &certTemplate, pub, priv)
 	} else {
@@ -427,6 +438,31 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 	if err != nil {
 		panic(err)
 	}
+
+	// Simple code to print the certificate extensions
+	
+	// if *certTransparency {
+	// 	cert, err := x509.ParseCertificate(certBytes)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+
+	// 	idSCT := asn1.ObjectIdentifier{1,3,6,1,4,1,11129,2,4,2}
+
+	// 	var ti []x509.TransItem 
+
+	// 	for _, v := range cert.Extensions {
+
+	// 		// fmt.Println(v)
+	// 		fmt.Printf("%+v\n", v)
+	// 		fmt.Println("\n")
+
+	// 		if v.Id.Equal(idSCT) {
+	// 			asn1.Unmarshal(v.Value, &ti)
+	// 			fmt.Printf("%+v\n", ti)
+	// 		}
+	// 	}
+	// }
 
 	hybridCert := new(tls.Certificate)
 
