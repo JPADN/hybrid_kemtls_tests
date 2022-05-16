@@ -383,7 +383,7 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		certTemplate.KeyUsage |= x509.KeyUsageCertSign
 	}
 
-	if *certTransparency && !isCA {				
+	if *certTransparency && !isCA && peer == "server" {
 		sctExt, err := x509.CreateSCT(rand.Reader, &certTemplate, signer, pub, signerPrivKey)
 		if err != nil {
 			return nil, nil, err
