@@ -8,6 +8,8 @@
 # -hybridroot
 # -cachedcert
 # -classicmceliece
+# -ct
+# -ocsp
 
 
 

@@ -5,13 +5,13 @@ cd ..
 
 for algo in ${HYBRID_ALGS[*]}
 do
-go run generate_root.go common.go stats_tls.go stats_kemtls.go plot_functions.go parse_hybrid_root.go \
+go run generate_root.go common.go stats_tls.go stats_kemtls.go plot_functions.go parse_hybrid_root.go ocspStaple.go \
 -algo ${algo}
 done
 
 for algo in ${CLASSIC_ALGS[*]}
 do
-go run generate_root.go common.go stats_tls.go stats_kemtls.go plot_functions.go parse_hybrid_root.go \
+go run generate_root.go common.go stats_tls.go stats_kemtls.go plot_functions.go parse_hybrid_root.go ocspStaple.go \
 -algo ${algo} \
 -classic
 done

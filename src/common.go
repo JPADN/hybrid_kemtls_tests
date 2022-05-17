@@ -40,6 +40,7 @@ var (
 	isHTTP = flag.Bool("http", false, "HTTP server")
 	classicMcEliece = flag.Bool("classicmceliece", false, "Classic McEliece tests")
 	certTransparency = flag.Bool("ct", false, "Simulate Certificate Transparency")
+	ocspStapling = flag.Bool("ocsp", false, "Simulate OCSP stapling for server's certificate")
 )
 
 var (
@@ -475,6 +476,15 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 	}
 
 	hybridCert.Certificate = append(hybridCert.Certificate, intCACert.Raw)
+
+	if *ocspStapling {		
+		hybridCert.OCSPStaple, _ = createOCSPResponse(rand.Reader, intCACert, intCAPriv)
+
+		// Prints the OCSP response
+		// var OCSPStaple ocspResponse
+		// asn1.Unmarshal(hybridCert.OCSPStaple, &OCSPStaple)
+		// fmt.Printf("%+v\n", OCSPStaple)		
+	}
 
 	cfg.Certificates = make([]tls.Certificate, 1)
 	cfg.Certificates[0] = *hybridCert
