@@ -51,7 +51,7 @@ var (
 
 	// Liboqs Algorithms
 	hsKEXAlgorithms = map[string]tls.CurveID{
-		"P256": tls.CurveP256, "P384": tls.CurveP384, "P521": tls.CurveP256,
+		"P256": tls.CurveP256, "P384": tls.CurveP384, "P521": tls.CurveP521,
 		"Kyber512": tls.OQS_Kyber512, "P256_Kyber512": tls.P256_Kyber512,
 		"Kyber768": tls.OQS_Kyber768, "P384_Kyber768": tls.P384_Kyber768,
 		"Kyber1024": tls.OQS_Kyber1024, "P521_Kyber1024": tls.P521_Kyber1024,
