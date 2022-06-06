@@ -76,21 +76,21 @@ var (
 	}
 
 	// Algorithms to be used in the handshake tests
-	testsKEXAlgorithms = []string{
-		"Kyber512", "P256_Kyber512", "Kyber768", "P384_Kyber768",
-		"Kyber1024", "P521_Kyber1024", "LightSaber_KEM", "P256_LightSaber_KEM",
-		"Saber_KEM", "P384_Saber_KEM", "FireSaber_KEM", "P521_FireSaber_KEM",
-		"NTRU_HPS_2048_509", "P256_NTRU_HPS_2048_509",
-		"NTRU_HPS_2048_677", "P384_NTRU_HPS_2048_677",
-		"NTRU_HPS_4096_821", "P521_NTRU_HPS_4096_821",
-		"NTRU_HPS_4096_1229", "P521_NTRU_HPS_4096_1229",
-		"NTRU_HRSS_701", "P384_NTRU_HRSS_701", "NTRU_HRSS_1373", "P521_NTRU_HRSS_1373",
+	testsKEXAlgorithms = []string{ "P256_Kyber512",
+		// "Kyber512", "P256_Kyber512", "Kyber768", "P384_Kyber768",
+		// "Kyber1024", "P521_Kyber1024", "LightSaber_KEM", "P256_LightSaber_KEM",
+		// "Saber_KEM", "P384_Saber_KEM", "FireSaber_KEM", "P521_FireSaber_KEM",
+		// "NTRU_HPS_2048_509", "P256_NTRU_HPS_2048_509",
+		// "NTRU_HPS_2048_677", "P384_NTRU_HPS_2048_677",
+		// "NTRU_HPS_4096_821", "P521_NTRU_HPS_4096_821",
+		// "NTRU_HPS_4096_1229", "P521_NTRU_HPS_4096_1229",
+		// "NTRU_HRSS_701", "P384_NTRU_HRSS_701", "NTRU_HRSS_1373", "P521_NTRU_HRSS_1373",
 	}
 
-	testsAuthAlgorithms = []string{
-		"P256_Dilithium2", "P256_Falcon512",
-		"P384_Dilithium3",
-		"P521_Dilithium5", "P521_Falcon1024",
+	testsAuthAlgorithms = []string{ "P256_Dilithium2",
+		// "P256_Dilithium2", "P256_Falcon512",
+		// "P384_Dilithium3",
+		// "P521_Dilithium5", "P521_Falcon1024",
 	}
 	
 	// Classic algorithms (for both KEX and Auth) to be used in the handshake tests
@@ -405,6 +405,7 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 		MaxVersion:                 tls.VersionTLS13,
 		InsecureSkipVerify:         false,
 		SupportDelegatedCredential: false,
+		WrappedCertEnabled: true,
 	}
 
 	if *pqtls {
@@ -460,6 +461,7 @@ func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 		MaxVersion:                 tls.VersionTLS13,
 		InsecureSkipVerify:         false,
 		SupportDelegatedCredential: false,
+		WrappedCertEnabled: true,
 	}
 
 	if *pqtls {
