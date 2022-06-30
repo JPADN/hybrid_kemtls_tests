@@ -38,6 +38,7 @@ var (
 	cachedCert = flag.Bool("cachedcert", false, "KEMTLS PDK or TLS(cached) server cert.")
 	isHTTP = flag.Bool("http", false, "HTTP server")
 	classicMcEliece = flag.Bool("classicmceliece", false, "Classic McEliece tests")
+	wrappedCert = flag.Bool("wrappedcert", false, "Wrapped Certificates prototype")
 )
 
 var (
@@ -384,7 +385,9 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 	if isSelfSigned {
 		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, &certTemplate, pub, priv)
 	} else {
-		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, signer, pub, signerPrivKey)
+		// if *wrappedCert {
+		// 	certDERBytes, err = x509.CreateWrappedCertificate(rand.Reader, &certTemplate, signer, pub, signerPrivKey, certPSK)
+		certDERBytes, err = x509.CreateCertificate(rand.Reader, &certTemplate, signer, pub, signerPrivKey)		
 	}
 
 	if err != nil {
@@ -405,7 +408,10 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 		MaxVersion:                 tls.VersionTLS13,
 		InsecureSkipVerify:         false,
 		SupportDelegatedCredential: false,
-		WrappedCertEnabled: true,
+	}
+
+	if *wrappedCert {
+		cfg.WrappedCertEnabled = true
 	}
 
 	if *pqtls {
@@ -461,7 +467,10 @@ func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 		MaxVersion:                 tls.VersionTLS13,
 		InsecureSkipVerify:         false,
 		SupportDelegatedCredential: false,
-		WrappedCertEnabled: true,
+	}
+
+	if *wrappedCert {
+		ccfg.WrappedCertEnabled = true
 	}
 
 	if *pqtls {

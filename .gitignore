@@ -7,7 +7,6 @@
 src/graphs/*.pdf
 src/graphs/*.html
 
-.vscode/
 liboqs/
 liboqs-go/
 
