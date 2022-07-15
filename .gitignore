@@ -11,7 +11,11 @@ liboqs/
 liboqs-go/
 
 # Local development dirs/files
-temp_client/
-temp_server/
-temp_root/
+dev/temp_client/
+dev/temp_server/
+dev/temp_root/
+
+!client_psk_db.csv
+!server_psk_db.csv
+
 clean.sh
