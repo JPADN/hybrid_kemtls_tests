@@ -12,4 +12,4 @@
 
 
 
-MUTUAL_FLAGS="-hybridroot dilithium -handshakes 10 -cachedcert"
+MUTUAL_FLAGS="-hybridroot dilithium -wrappedcert -classic"

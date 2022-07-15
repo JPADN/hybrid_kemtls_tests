@@ -10,5 +10,5 @@ source config.sh
 cd ..
 
 go run launch_servers.go common.go parse_hybrid_root.go stats_tls.go stats_kemtls.go plot_functions.go \
--ipserver 127.0.0.1 \
+-ipserver teste \
 ${MUTUAL_FLAGS}

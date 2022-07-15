@@ -15,4 +15,3 @@ temp_client/
 temp_server/
 temp_root/
 clean.sh
-debug.sh

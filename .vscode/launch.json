@@ -9,16 +9,18 @@
       "type": "go",
       "request": "launch",
       "mode": "debug",
-      "program": "${workspaceRoot}/temp_client",
-      "args": ["-ipclient", "127.0.0.1", "-ipserver", "127.0.0.1", "-hybridroot", "dilithium", "-wrappedcert"]
+      "program": "${workspaceRoot}/dev/temp_client",
+      "cwd": "${workspaceRoot}/dev/temp_client",
+      "args": ["-ipclient", "127.0.0.1", "-ipserver", "teste", "-hybridroot", "dilithium", "-wrappedcert", "-classic"]
     },
     {
       "name": "Server",
       "type": "go",
       "request": "launch",
       "mode": "debug",
-      "program": "${workspaceRoot}/temp_server",
-      "args": ["-ipserver", "127.0.0.1", "-hybridroot", "dilithium", "-wrappedcert"]
+      "program": "${workspaceRoot}/dev/temp_server",
+      "cwd": "${workspaceRoot}/dev/temp_server",
+      "args": ["-ipserver", "teste", "-hybridroot", "dilithium", "-wrappedcert", "-classic"]
     }
   ]
 }
