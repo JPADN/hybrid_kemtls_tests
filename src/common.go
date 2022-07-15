@@ -2,14 +2,15 @@ package main
 
 import (
 	"circl/sign"
-	"crypto/elliptic"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/kem"
 	"crypto/liboqs_sig"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -39,6 +41,7 @@ var (
 	isHTTP = flag.Bool("http", false, "HTTP server")
 	classicMcEliece = flag.Bool("classicmceliece", false, "Classic McEliece tests")
 	wrappedCert = flag.Bool("wrappedcert", false, "Wrapped Certificates prototype")
+	wrappedCertsDir = flag.String("wrapdir", "", "Wrapped Certificated directory")
 )
 
 var (
@@ -95,8 +98,8 @@ var (
 	}
 	
 	// Classic algorithms (for both KEX and Auth) to be used in the handshake tests
-	testsClassicAlgorithms = []string {
-		"P256","P384", "P521",
+	testsClassicAlgorithms = []string { "P256",
+		// "P256","P384", "P521",
 	}
 
 	clientHSMsg = "hello, server"
@@ -412,6 +415,7 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 
 	if *wrappedCert {
 		cfg.WrappedCertEnabled = true
+		cfg.WrappedCertsDir = *wrappedCertsDir
 	}
 
 	if *pqtls {
@@ -469,10 +473,6 @@ func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 		SupportDelegatedCredential: false,
 	}
 
-	if *wrappedCert {
-		ccfg.WrappedCertEnabled = true
-	}
-
 	if *pqtls {
 		ccfg.PQTLSEnabled = true
 		clientKeyUsage = x509.KeyUsageDigitalSignature
@@ -511,7 +511,25 @@ func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 
 	ccfg.RootCAs = x509.NewCertPool()
 
-	ccfg.RootCAs.AddCert(rootCA)
+	if *wrappedCert {
+		ccfg.WrappedCertEnabled = true
+
+		certPEMBlock, err := os.ReadFile(*rootCert)
+		if err != nil {
+			panic(err)
+		}		
+
+		certDERBlock, certPEMBlock := pem.Decode(certPEMBlock)
+
+		pebbleRootCA, err := x509.ParseCertificate(certDERBlock.Bytes)
+		if err != nil {
+			panic(err)
+		}
+
+		ccfg.RootCAs.AddCert(pebbleRootCA)	
+	} else {
+		ccfg.RootCAs.AddCert(rootCA)
+	}
 
 	return ccfg
 }
