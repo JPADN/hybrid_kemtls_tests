@@ -1,3 +1,6 @@
+rm -rf temp_client
+rm -rf temp_server
+
 mkdir temp_client
 mkdir temp_server
 
