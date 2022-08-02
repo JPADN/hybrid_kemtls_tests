@@ -1,3 +1,5 @@
+#!/bin/bash
+
 read -p "Path to the Hybrid KEMTLS Go stdlib: "  GO_KEMTLS_ROOT
 WORKING_DIR=$PWD
 
@@ -31,8 +33,8 @@ export PKG_CONFIG_PATH=\$PKG_CONFIG_PATH:${WORKING_DIR}/liboqs-go/.config
 cd ${GO_KEMTLS_ROOT}/src
 ./make.bash
 
-export PATH=${GO_KEMTLS_ROOT}/bin:$PATH:
+export PATH=${GO_KEMTLS_ROOT}/bin:$PATH
 
 echo "'${GO_KEMTLS_ROOT}/bin' was appended temporarily to PATH, to make it permanent append the following in your ~/.profile:
-export PATH=\${GO_KEMTLS_ROOT}/bin:$PATH:
+export PATH=\${GO_KEMTLS_ROOT}/bin:$PATH
 "

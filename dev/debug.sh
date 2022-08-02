@@ -1,3 +1,5 @@
+#!/bin/bash
+
 rm -rf temp_client
 rm -rf temp_server
 
