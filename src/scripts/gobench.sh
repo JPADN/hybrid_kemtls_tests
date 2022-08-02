@@ -1,3 +1,4 @@
+#!/bin/bash
 source config.sh
 
 # gobench exclusive flags

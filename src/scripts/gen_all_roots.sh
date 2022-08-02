@@ -1,3 +1,5 @@
+#!/bin/bash
+
 HYBRID_ALGS=(P256_Dilithium2 P256_Falcon512 P384_Dilithium3 P521_Dilithium5 P521_Falcon1024)
 CLASSIC_ALGS=(P256 P384 P521)
 
