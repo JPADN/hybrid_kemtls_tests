@@ -127,6 +127,8 @@ If the `-http` flag is true, it must be supplied the Key Exchange and the Authen
 
 `-cachedcert`: If KEMTLS is enabled, the server will perform KEMTLS-PDK. If PQTLS or Classic mode is enabled, the server will use the Cached Information Extension for TLS
 
+`-classicmceliece`: Adds P256_Classic-McEliece-348864 to the list of KEX algorithms to be tested. Furthermore, if KEMTLS is enabled, this flags sets the authentication algorithm to be only P256_Classic-McEliece-348864.
+
 <br/>
 
 
@@ -163,6 +165,8 @@ If the Root CA uses classical algorithms, the following flags must be set:
 `-handshakes`: Number of handshakes that the client will perform 
 
 `-cachedcert`: If KEMTLS is enabled, the client will perform KEMTLS-PDK. If PQTLS or Classic mode is enabled, the server will use the Cached Information Extension for TLS
+
+`-classicmceliece`: Adds P256_Classic-McEliece-348864 to the list of KEX algorithms to be tested. Furthermore, if KEMTLS is enabled, this flags sets the authentication algorithm to be only P256_Classic-McEliece-348864.
 
 <br/>
 
