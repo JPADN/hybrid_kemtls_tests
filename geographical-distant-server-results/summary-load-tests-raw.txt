@@ -1,0 +1,286 @@
+
+
+./gobench-automated.sh 
+--------------------------------------------------------------------------------------------------
+MCELIECE.....
+Success establishing first connection for cached certificate mode
+Dispatching 128 clients
+
+Waiting for results...
+
+Requests:                            21020 hits
+Successful requests:                 21020 hits
+Network failed:                          0 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:               58 hits/sec
+Read throughput:                 117490396 bytes/sec
+Write throughput:                    92982 bytes/sec
+Test time:                             360 sec
+
+
+Dispatching 256 clients
+Waiting for results...
+
+Requests:                            40228 hits
+Successful requests:                 40227 hits
+Network failed:                          1 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              111 hits/sec
+Read throughput:                 224883272 bytes/sec
+Write throughput:                   177628 bytes/sec
+Test time:                             360 sec
+
+
+Dispatching 512 clients
+Waiting for results...
+
+Requests:                            58043 hits
+Successful requests:                 58004 hits
+Network failed:                         39 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              161 hits/sec
+Read throughput:                 324920521 bytes/sec
+Write throughput:                   258286 bytes/sec
+Test time:                             360 sec
+
+
+
+Dispatching 1024 clients
+Waiting for results...
+
+Requests:                            57673 hits
+Successful requests:                 57659 hits
+Network failed:                         14 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              160 hits/sec
+Read throughput:                 349141555 bytes/sec
+Write throughput:                   286388 bytes/sec
+Test time:                             360 sec
+
+
+
+--------------------------------------
+CACHED CERT.....
+Success establishing first connection for cached certificate mode
+Dispatching 128 clients
+Waiting for results...
+
+Requests:                            21130 hits
+Successful requests:                 21128 hits
+Network failed:                          2 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:               58 hits/sec
+Read throughput:                 118243500 bytes/sec
+Write throughput:                    91241 bytes/sec
+Test time:                             360 sec
+
+Dispatching 256 clients
+Waiting for results...
+
+Requests:                            42283 hits
+Successful requests:                 42283 hits
+Network failed:                          0 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              117 hits/sec
+Read throughput:                 236421104 bytes/sec
+Write throughput:                   182309 bytes/sec
+Test time:                             360 sec
+
+
+
+Dispatching 512 clients
+Waiting for results...
+
+Requests:                            75217 hits
+Successful requests:                 75206 hits
+Network failed:                         11 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              208 hits/sec
+Read throughput:                 420831365 bytes/sec                                 
+Write throughput:                   324918 bytes/sec
+Test time:                             360 sec
+
+
+
+Dispatching 1024 clients
+Waiting for results...
+
+Requests:                            93921 hits
+Successful requests:                 93906 hits
+Network failed:                         15 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              260 hits/sec
+Read throughput:                 528201065 bytes/sec
+Write throughput:                   409259 bytes/sec
+Test time:                             360 sec
+
+--------------------------------------
+KEMTLS.....
+Dispatching 128 clients
+Waiting for results...
+
+Requests:                            21156 hits
+Successful requests:                 21153 hits
+Network failed:                          3 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:               58 hits/sec
+Read throughput:                 118762553 bytes/sec
+Write throughput:                   130714 bytes/sec
+Test time:                             360 sec
+
+
+
+Dispatching 256 clients
+Waiting for results...
+
+Requests:                            42219 hits
+Successful requests:                 42217 hits
+Network failed:                          2 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              117 hits/sec
+Read throughput:                 236975511 bytes/sec
+Write throughput:                   260480 bytes/sec
+Test time:                             360 sec
+
+
+
+
+Dispatching 512 clients
+Waiting for results...
+
+Requests:                            70966 hits
+Successful requests:                 70950 hits
+Network failed:                         16 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              197 hits/sec
+Read throughput:                 398211962 bytes/sec
+Write throughput:                   439324 bytes/sec
+Test time:                             360 sec
+
+
+
+Dispatching 1024 clients
+Waiting for results...
+
+Requests:                            92506 hits
+Successful requests:                 92498 hits
+Network failed:                          8 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              256 hits/sec
+Read throughput:                 520395516 bytes/sec
+Write throughput:                   574927 bytes/sec
+Test time:                             360 sec
+
+--------------------------------------
+PQTLS.....
+Dispatching 128 clients
+Waiting for results...
+
+Requests:                            21267 hits
+Successful requests:                 21267 hits
+Network failed:                          0 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:               59 hits/sec
+Read throughput:                 118975761 bytes/sec
+Write throughput:                    89842 bytes/sec
+Test time:                             360 sec
+
+
+Dispatching 256 clients
+Waiting for results...
+
+Requests:                            42381 hits
+Successful requests:                 42380 hits
+Network failed:                          1 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              117 hits/sec
+Read throughput:                 237381120 bytes/sec
+Write throughput:                   179007 bytes/sec
+Test time:                             360 sec
+
+Dispatching 512 clients
+Waiting for results...
+
+Requests:                            75718 hits
+Successful requests:                 75717 hits
+Network failed:                          1 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              210 hits/sec
+Read throughput:                 423864609 bytes/sec
+Write throughput:                   320531 bytes/sec
+Test time:                             360 sec
+
+
+
+Dispatching 1024 clients
+Waiting for results...
+
+Requests:                            95627 hits
+Successful requests:                 95617 hits
+Network failed:                         10 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              265 hits/sec
+Read throughput:                 535635593 bytes/sec
+Write throughput:                   406102 bytes/sec
+Test time:                             360 sec
+
+
+--------------------------------------
+BASELINE.....
+Dispatching 128 clients
+Waiting for results...
+
+Requests:                            21272 hits
+Successful requests:                 21272 hits
+Network failed:                          0 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:               59 hits/sec
+Read throughput:                 118885293 bytes/sec
+Write throughput:                    42294 bytes/sec
+Test time:                             360 sec
+
+
+
+
+Dispatching 256 clients
+Waiting for results...
+
+Requests:                            42346 hits
+Successful requests:                 42341 hits
+Network failed:                          5 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              117 hits/sec
+Read throughput:                 237018835 bytes/sec
+Write throughput:                    84156 bytes/sec
+Test time:                             360 sec
+
+
+Dispatching 512 clients
+Waiting for results...
+
+Requests:                            77742 hits
+Successful requests:                 77735 hits
+Network failed:                          7 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              215 hits/sec
+Read throughput:                 435101725 bytes/sec
+Write throughput:                   154566 bytes/sec
+Test time:                             360 sec
+
+
+
+
+Dispatching 1024 clients
+Waiting for results...
+
+Requests:                            98127 hits
+Successful requests:                 98102 hits
+Network failed:                         25 hits
+Bad requests failed (!2xx):              0 hits
+Successful requests rate:              272 hits/sec
+Read throughput:                 551019492 bytes/sec
+Write throughput:                   196582 bytes/sec
+Test time:                             360 sec
+
+
+
