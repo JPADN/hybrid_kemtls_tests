@@ -6,10 +6,6 @@ import (
 	"log"
 	"math"
 	"os"
-	"regexp"
-	"strings"
-
-	"gonum.org/v1/plot/plotter"
 )
 
 type KEMTLSClientResultsInfo struct {
@@ -110,7 +106,7 @@ func kemtlsInitCSV() {
 	}
 	csvwriter := csv.NewWriter(csvFile)
 
-	header := []string{"algo", "timingFullProtocol", "timingSendAppData", "timingProcessServerHello", "timingWriteClientHello", "timingWriteKEMCiphertext"}
+	header := []string{"kex", "auth", "timingFullProtocol", "timingSendAppData", "timingProcessServerHello", "timingWriteClientHello", "timingWriteKEMCiphertext"}
 
 	csvwriter.Write(header)
 	csvwriter.Flush()
@@ -122,7 +118,7 @@ func kemtlsInitCSV() {
 	}
 	csvwriter = csv.NewWriter(csvFile)
 
-	header = []string{"Algo", "ClientHello", "ClientKEMCiphertext", "Certificate", "Finished", "Total"}
+	header = []string{"kex", "auth", "ClientHello", "ClientKEMCiphertext", "Certificate", "Finished", "Total"}
 
 	csvwriter.Write(header)
 	csvwriter.Flush()
@@ -136,7 +132,7 @@ func kemtlsInitCSVServer() {
 	}
 	csvwriter := csv.NewWriter(csvFile)
 
-	header := []string{"algo", "timingFullProtocol", "timingWriteServerHello", "timingReadKEMCiphertext"}
+	header := []string{"kex", "auth", "timingFullProtocol", "timingWriteServerHello", "timingReadKEMCiphertext"}
 
 	csvwriter.Write(header)
 	csvwriter.Flush()
@@ -148,7 +144,7 @@ func kemtlsInitCSVServer() {
 	}
 	csvwriter = csv.NewWriter(csvFile)
 
-	header = []string{"algo", "ServerHello", "EncryptedExtensions", "Certificate", "CertificateRequest", "ServerKEMCiphertext", "Finished", "Total"}
+	header = []string{"kex", "auth", "ServerHello", "EncryptedExtensions", "Certificate", "CertificateRequest", "ServerKEMCiphertext", "Finished", "Total"}
 
 	csvwriter.Write(header)
 	csvwriter.Flush()
@@ -157,7 +153,7 @@ func kemtlsInitCSVServer() {
 
 
 
-func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, name string, hs int, sizes map[string]uint32) {
+func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, kexAlgo string, authAlgo string, hs int, sizes map[string]uint32) {
 	csvFile, err := os.OpenFile("csv/kemtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
@@ -167,7 +163,7 @@ func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, 
 
 	for i := 0; i < hs; i++ {
 		arrayStr := []string{
-			name, 
+			kexAlgo, authAlgo,
 			fmt.Sprintf("%f", timingsFullProtocol[i]),
 			fmt.Sprintf("%f", timingsSendAppData[i]),
 			fmt.Sprintf("%f", timingsProcessServerHello[i]),
@@ -190,7 +186,8 @@ func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, 
 
 	totalSizes := sizes["ClientHello"] + sizes["ClientKEMCiphertext"] + sizes["Certificate"] + sizes["Finished"]
 
-	arrayStr := []string{name, 
+	arrayStr := []string{
+		kexAlgo, authAlgo, 
 		fmt.Sprintf("%d", sizes["ClientHello"]),
 		fmt.Sprintf("%d", sizes["ClientKEMCiphertext"]),
 		fmt.Sprintf("%d", sizes["Certificate"]),
@@ -251,61 +248,4 @@ func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello 
 	}
 	csvwriter.Flush()
 	csvFile.Close()
-}
-
-func printHybridPenalty(results []KEMTLSClientResultsInfo) {
-	//hybrid prefixes
-	re := regexp.MustCompile(`P256|P384|P521|x25519|x448`)
-
-	//header
-	fmt.Println("\n------ Hybrid Penalty ------")
-	fmt.Printf("%-23s | ", "TestName")
-	fmt.Printf("%-26s | ", "AvgClientTotalTime Penalty")
-	fmt.Printf("%-26s | ", "AvgClientSendAppDataTime Penalty")
-	fmt.Printf("%-26s | ", "AvgWrtCHelloTime Penalty")
-	fmt.Printf("%-26s | ", "AvgPrSHelloTime Penalty")
-	fmt.Printf("%-26s  ", "AvgWrtKEMCtTime Penalty")
-
-	foundHybrid := false
-
-	for _, r1 := range results {
-		if re.MatchString(r1.kexName) {
-			foundHybrid = true
-			//find the PQC-only correspondence
-			for _, r2 := range results { //str,substr
-				if (strings.Contains(r1.kexName, r2.kexName)) && (r1.kexName != r2.kexName) {
-					//Fix saber case
-					if r2.kexName == "Saber_KEM" &&
-						(strings.Contains(r1.kexName, "P256_LightSaber_KEM") || strings.Contains(r1.kexName, "P521_FireSaber_KEM")) {
-						continue
-					}
-					fmt.Println("")
-					fmt.Printf("%-23s |", r1.kexName)
-
-					fmt.Printf(" %-26f |", r1.avgTotalTime-r2.avgTotalTime)
-					fmt.Printf(" %-26f |", r1.avgSendAppDataTime-r2.avgSendAppDataTime)
-					fmt.Printf(" %-26f |", r1.avgWriteClientHello-r2.avgWriteClientHello)
-					fmt.Printf(" %-26f |", r1.avgProcessServerHello-r2.avgProcessServerHello)
-					fmt.Printf(" %-26f ", r1.avgWriteKEMCiphertext-r2.avgWriteKEMCiphertext)
-				}
-			}
-		}
-	}
-	fmt.Println("")
-	if foundHybrid == false {
-		fmt.Println("No hybrid found in this test.")
-	}
-}
-
-func kemtlsResultsExporter(results []KEMTLSClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
-	kemtlsPrintStatistics(results)
-	printHybridPenalty(results)
-	genbar(results, "Avg Completion Time - Client (ms)")
-	genbar(results, "Avg Send Application Data Time - Client (ms)")
-	genbar(results, "Avg Write Client Hello Time (ms)")
-	genbar(results, "Avg Process Server Hello - Client (ms)")
-	genbar(results, "Avg Write KEM Ciphertext - Client (ms)")
-	boxplot(names, boxPlotValues, hs)
-	barMarkLines(results, "All")
-	barMarkLines(results, "L1")
 }

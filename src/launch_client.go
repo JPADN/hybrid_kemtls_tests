@@ -1,15 +1,11 @@
 package main
 
 import (
-	"crypto/kem"
 	"flag"
 	"fmt"
 	"log"
-	"regexp"
 	"time"
 	"crypto/tls"
-
-	"gonum.org/v1/plot/plotter"
 )
 
 
@@ -17,43 +13,27 @@ func main() {
 	flag.Parse()
 
 	port := 4433
-	
-	var re *regexp.Regexp
-	
+		
 	handshakeSizes := make(map[string]uint32)
 	var cconnState tls.ConnectionState
 
-	//boxPlot data
-	if *pqtls {
-		re = regexp.MustCompile(`P256`)
-	} else {
-		re = regexp.MustCompile(`P256|P384`)
-	}
-
-	var boxPlotValues []plotter.Values
-	var kexNames []string
 	var keysKEX, keysAuth []string
 
 	//prepare output file
-	if *pqtls || *classic {
+	if *pqtls {
 		tlsInitCSV()
 	} else {
 		kemtlsInitCSV()
 	}
 
-	if *classic {
-		keysKEX = testsClassicAlgorithms
-		keysAuth = testsClassicAlgorithms
-	} else {  // PQTLS and KEMTLS
-		keysKEX = testsKEXAlgorithms
-		keysAuth = testsAuthAlgorithms
-	}
+	keysKEX = testsKEXAlgorithms
+	keysAuth = testsSignatureAlgorithms
 
-	if *classicMcEliece {
-		keysKEX = append(keysKEX, "P256_Classic-McEliece-348864")
-	}
+	// if *classicMcEliece {
+	// 	keysKEX = append(keysKEX, "P256_Classic-McEliece-348864")
+	// }
 
-	if !*pqtls && !*classic {
+	if !*pqtls {
 
 		// struct for the metrics
 		var algoResults KEMTLSClientResultsInfo
@@ -73,7 +53,7 @@ func main() {
 			
 
 			strport := fmt.Sprintf("%d", port)
-			fmt.Println("\t\t\t\t\t\t\t\t" + k + ":" + strport)
+
 
 			clientConfig, err := initClientAndAuth(k, kAuth)
 			if err != nil {
@@ -83,9 +63,7 @@ func main() {
 				continue
 			}
 
-			fmt.Printf("Starting KEMTLS Handshakes: KEX Algorithm: %s (0x%x) - Auth Algorithm: %s (0x%x)\n",
-				k, kem.ID(clientConfig.CurvePreferences[0]),
-				kAuth, kem.ID(clientConfig.CurvePreferences[0]))
+			fmt.Printf("Starting KEMTLS Handshakes: KEX: %s  Auth: %s\n", k, kAuth,)
 
 			var timingsFullProtocol []float64
 			var timingsSendAppData []float64
@@ -109,7 +87,6 @@ func main() {
 
 				timingState, cconnState, err, success = testConnHybrid(clientHSMsg, serverHSMsg, clientConfig, "client", *IPserver, strport)
 				if err != nil || success == false {
-					//log.Fatal(err)
 					i--
 					continue //do not count this handshake timing
 				}
@@ -126,7 +103,7 @@ func main() {
 			handshakeSizes["Finished"] = cconnState.ClientHandshakeSizes.Finished
 
 			//save results first
-			kemtlsSaveCSV(timingsFullProtocol, timingsSendAppData, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, *handshakes, handshakeSizes)
+			kemtlsSaveCSV(timingsFullProtocol, timingsSendAppData, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, k, kAuth, *handshakes, handshakeSizes)
 
 			algoResults = kemtlsComputeStats(timingsFullProtocol, timingsSendAppData, timingsProcessServerHello, timingsWriteClientHello, timingsWriteKEMCiphertext, *handshakes)
 			algoResults.kexName = k
@@ -134,19 +111,11 @@ func main() {
 
 			algoResultsList = append(algoResultsList, algoResults)
 
-			if re.MatchString(k) {
-				//boxplot data for hybrids
-				boxPlotValues = append(boxPlotValues, (timingsFullProtocol))				
-				kexNames = append(kexNames, k)
-
-				// TODO: boxplot SendAppData data
-			}
 
 			port++
 		}
 
-		//export results
-		kemtlsResultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
+		kemtlsPrintStatistics(algoResultsList)
 		fmt.Println("End of test.")
 
 	} else {
@@ -171,8 +140,7 @@ func main() {
 					continue
 				}
 
-				fmt.Printf("Starting TLS Handshakes: KEX Algorithm: %s - Auth Algorithm: %s \n",
-					k, kAuth) //note: removed 'authCurveID'
+				fmt.Printf("Starting TLS Handshakes: KEX Algorithm: %s - Auth Algorithm: %s \n", k, kAuth)
 
 				var timingsFullProtocol []float64
 				var timingsProcessServerHello []float64
@@ -218,17 +186,10 @@ func main() {
 				algoResults.authName = kAuth
 
 				algoResultsList = append(algoResultsList, algoResults)
-
-				if re.MatchString(k) {
-					//boxplot data for hybrids
-					boxPlotValues = append(boxPlotValues, (timingsFullProtocol))
-					kexNames = append(kexNames, k)
-				}
-
 				port++
 			}
 		}
-		tlsResultsExporter(algoResultsList, boxPlotValues, kexNames, *handshakes)
+		tlsPrintStatistics(algoResultsList)
 		fmt.Println("End of test.")
 	}
 }

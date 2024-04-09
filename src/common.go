@@ -1,8 +1,6 @@
 package main
 
 import (
-	"circl/sign"
-	"crypto/elliptic"
 	"crypto/ecdsa"
 	"crypto/kem"
 	"crypto/liboqs_sig"
@@ -41,61 +39,34 @@ var (
 )
 
 var (
-
-	// CIRCL Algorithms
-	// hsAlgorithms = map[string]tls.CurveID{"Kyber512X25519": tls.Kyber512X25519, "Kyber768X448": tls.Kyber768X448, "Kyber1024X448": tls.Kyber1024X448,
-	// 	"SIKEp434X25519": tls.SIKEp434X25519, "SIKEp503X448": tls.SIKEp503X448, "SIKEp751X448": tls.SIKEp751X448}
-
-	// Liboqs Algorithms
-	hsKEXAlgorithms = map[string]tls.CurveID{
-		"P256": tls.CurveP256, "P384": tls.CurveP384, "P521": tls.CurveP521,
-		"Kyber512": tls.OQS_Kyber512, "P256_Kyber512": tls.P256_Kyber512,
-		"Kyber768": tls.OQS_Kyber768, "P384_Kyber768": tls.P384_Kyber768,
-		"Kyber1024": tls.OQS_Kyber1024, "P521_Kyber1024": tls.P521_Kyber1024,
-		"LightSaber_KEM": tls.LightSaber_KEM, "P256_LightSaber_KEM": tls.P256_LightSaber_KEM,
-		"Saber_KEM": tls.Saber_KEM, "P384_Saber_KEM": tls.P384_Saber_KEM,
-		"FireSaber_KEM": tls.FireSaber_KEM, "P521_FireSaber_KEM": tls.P521_FireSaber_KEM,
-		"NTRU_HPS_2048_509": tls.NTRU_HPS_2048_509, "P256_NTRU_HPS_2048_509": tls.P256_NTRU_HPS_2048_509,
-		"NTRU_HPS_2048_677": tls.NTRU_HPS_2048_677, "P384_NTRU_HPS_2048_677": tls.P384_NTRU_HPS_2048_677,
-		"NTRU_HPS_4096_821": tls.NTRU_HPS_4096_821, "P521_NTRU_HPS_4096_821": tls.P521_NTRU_HPS_4096_821,
-		"NTRU_HPS_4096_1229": tls.NTRU_HPS_4096_1229, "P521_NTRU_HPS_4096_1229": tls.P521_NTRU_HPS_4096_1229,
-		"NTRU_HRSS_701": tls.NTRU_HRSS_701, "P384_NTRU_HRSS_701": tls.P384_NTRU_HRSS_701,
-		"NTRU_HRSS_1373": tls.NTRU_HRSS_1373, "P521_NTRU_HRSS_1373": tls.P521_NTRU_HRSS_1373,
-		"P256_Classic-McEliece-348864": tls.P256_Classic_McEliece_348864,
+	hsKEXAlgorithms = map[string]tls.CurveID{		
+		// "P256_BIKE_L1": tls.P256_BIKE_L1, "P384_BIKE_L3": tls.P384_BIKE_L3, "P521_BIKE_L5": tls.P521_BIKE_L5,
+		// "P256_HQC_128": tls.P256_HQC_128, "P384_HQC_192": tls.P384_HQC_192, "P521_HQC_256": tls.P521_HQC_256,
+		"P256_Kyber512": tls.P256_Kyber512, "P384_Kyber768": tls.P384_Kyber768, "P521_Kyber1024": tls.P521_Kyber1024,
 	}
 
-	// Liboqs Algorithms
-	hsHybridAuthAlgorithms = map[string]liboqs_sig.ID{
-		"P256_Dilithium2": liboqs_sig.P256_Dilithium2, "P256_Falcon512": liboqs_sig.P256_Falcon512,
+	hsHybridSignatureAlgorithms = map[string]liboqs_sig.ID{  // TODO
+		"P256_Dilithium2": liboqs_sig.P256_Dilithium2,
 		"P384_Dilithium3": liboqs_sig.P384_Dilithium3,
-		"P521_Dilithium5": liboqs_sig.P521_Dilithium5, "P521_Falcon1024": liboqs_sig.P521_Falcon1024,
-	}
-
-	hsClassicAuthAlgorithms = map[string]elliptic.Curve{
-		"P256": elliptic.P256(), "P384": elliptic.P384(), "P521": elliptic.P521(),
+		"P521_Dilithium5": liboqs_sig.P521_Dilithium5,
 	}
 
 	// Algorithms to be used in the handshake tests
 	testsKEXAlgorithms = []string{
-		"Kyber512", "P256_Kyber512", "Kyber768", "P384_Kyber768",
-		"Kyber1024", "P521_Kyber1024", "LightSaber_KEM", "P256_LightSaber_KEM",
-		"Saber_KEM", "P384_Saber_KEM", "FireSaber_KEM", "P521_FireSaber_KEM",
-		"NTRU_HPS_2048_509", "P256_NTRU_HPS_2048_509",
-		"NTRU_HPS_2048_677", "P384_NTRU_HPS_2048_677",
-		"NTRU_HPS_4096_821", "P521_NTRU_HPS_4096_821",
-		"NTRU_HPS_4096_1229", "P521_NTRU_HPS_4096_1229",
-		"NTRU_HRSS_701", "P384_NTRU_HRSS_701", "NTRU_HRSS_1373", "P521_NTRU_HRSS_1373",
+		// "P256_HQC_128", "P256_BIKE_L1", 
+		// "P384_HQC_192", "P384_BIKE_L3", 
+		// "P521_HQC_256","P521_BIKE_L5",
+		"P256_Kyber512", "P384_Kyber768", "P521_Kyber1024",
 	}
 
-	testsAuthAlgorithms = []string{
-		"P256_Dilithium2", "P256_Falcon512",
+	testsSignatureAlgorithms = []string{  // TODO
+		"P256_Dilithium2",
 		"P384_Dilithium3",
-		"P521_Dilithium5", "P521_Falcon1024",
+		"P521_Dilithium5",
 	}
-	
-	// Classic algorithms (for both KEX and Auth) to be used in the handshake tests
-	testsClassicAlgorithms = []string {
-		"P256","P384", "P521",
+
+	classicMcElieceAlgorithms = map[int]string {
+		1: "Classic_McEliece1", 3: "Classic_McEliece3", 5: "Classic_McEliece5",  // TODO
 	}
 
 	clientHSMsg = "hello, server"
@@ -155,35 +126,22 @@ func initClientAndAuth(k, kAuth string) (*tls.Config, error) {
 }
 
 // Construct Certificate Authority chain (Root CA and Intermediate CA)
-func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509.Certificate, intCAPriv interface{}) {
+func constructChain(securityLevel int) (rootCertX509 *x509.Certificate, intCACert *x509.Certificate, intCAPriv interface{}) {
 
 	var intCAAlgo, rootPriv interface{}
 
-	if *hybridRootFamily != "" {
-		rootCertX509, rootPriv = constructHybridRoot(*hybridRootFamily, secNum)
+	rootCertX509, rootPriv = constructHybridRoot(*hybridRootFamily, securityLevel)
 
-		intCAAlgo = rootPriv.(*liboqs_sig.PrivateKey).SigId
-	} else {
-		tempRootCertTLS, err := tls.LoadX509KeyPair(*rootCert, *rootKey)
-		if err != nil {
-			panic(err)
-		}
-
-		rootCertX509, err = x509.ParseCertificate(tempRootCertTLS.Certificate[0])
-		if err != nil {
-			panic(err)
-		}
-
-		rootPriv = tempRootCertTLS.PrivateKey
-		
-		intCAAlgo = rootPriv.(*ecdsa.PrivateKey).Curve
+	switch securityLevel {
+	case 1:
+		intCAAlgo = liboqs_sig.P256_Dilithium2
+	case 3:
+		intCAAlgo = liboqs_sig.P384_Dilithium3
+	case 5:
+		intCAAlgo = liboqs_sig.P521_Dilithium5
 	}
 
-	// intCACert, intCAPriv = initCAs(rootCertX509, rootPriv, intCAAlgo)
-
-	intKeyUsage := x509.KeyUsageCertSign
-
-	intCACertBytes, intCAPriv, err := createCertificate(intCAAlgo, rootCertX509, rootPriv, true, false, "server", intKeyUsage, nil, "127.0.0.1")
+	intCACertBytes, intCAPriv, err := createCertificate(intCAAlgo, rootCertX509, rootPriv, true, false, "server", x509.KeyUsageCertSign, nil, "127.0.0.1")
 	if err != nil {
 		panic(err)
 	}
@@ -197,54 +155,35 @@ func constructChain(secNum int) (rootCertX509 *x509.Certificate, intCACert *x509
 }
 
 func getSecurityLevel(k string) (level int) {
-	// want same levels for the algos
 	reLevel1 := regexp.MustCompile(`P256`)
 	reLevel3 := regexp.MustCompile(`P384`)
 	reLevel5 := regexp.MustCompile(`P521`)
 
-	if reLevel1.MatchString(k) || k == "Kyber512" || k == "LightSaber_KEM" || k == "NTRU_HPS_2048_509" {
+	if reLevel1.MatchString(k) {
 		return 1
+	} else if reLevel3.MatchString(k) {
+		return 3
+	} else if reLevel5.MatchString(k) {			
+		return 5
 	} else {
-		if reLevel3.MatchString(k) || k == "Kyber768" || k == "Saber_KEM" || k == "NTRU_HPS_2048_677" || k == "NTRU_HRSS_701" {
-			return 3
-		} else {
-			if reLevel5.MatchString(k) || k == "Kyber1024" || k == "FireSaber_KEM" || k == "NTRU_HPS_4096_821" || k == "NTRU_HPS_4096_1229" || k == "NTRU_HRSS_1373" {
-				return 5
-			} else {
-				panic("Error when recovering NIST security level number.")
-			}
-		}
-	}
+		panic("Error when recovering NIST security level number.")
+	}	
 }
 
 func nameToCurveID(name string) (tls.CurveID, error) {
-	curveID, prs := hsKEXAlgorithms[name]
-	if !prs {
-		fmt.Println("Algorithm not found. Available algorithms: ")
-		for name, _ := range hsKEXAlgorithms {
-			fmt.Println(name)
-		}
-		return 0, errors.New("ERROR: Algorithm not found")
+	curveID, prs := hsKEXAlgorithms[name]	
+	if prs {
+		return curveID, nil
 	}
-	return curveID, nil
+	return 0, errors.New("Error: key exchange algorithm not found")
 }
 
-func nameToSigID(name string) interface{} {
-	var sigId interface{}
-	var prs bool
-
-	if *classic {
-		sigId, prs = hsClassicAuthAlgorithms[name]
-		if prs {
-			return sigId
-		}
-	} else {
-		sigId, prs = hsHybridAuthAlgorithms[name]
-		if prs {
-			return sigId
-		}
-	}
-	panic("Algorithm not found")
+func nameToSigID(name string) (liboqs_sig.ID, error) {
+	sigId, prs := hsHybridSignatureAlgorithms[name]
+	if prs {
+		return sigId, nil
+	}	
+	return 0, errors.New("Error: signature algorithm not found")
 }
 
 func curveIDToName(cID tls.CurveID) (name string, e error) {
@@ -253,28 +192,19 @@ func curveIDToName(cID tls.CurveID) (name string, e error) {
 			return n, nil
 		}
 	}
-	return "0", errors.New("ERROR: Algorithm not found")
+	return "0", errors.New("Error: key exchange algorithm not found")
 }
 
 func sigIDToName(sigID interface{}) (name string, e error) {
-
-	if *classic {
-		sigEC := sigID.(elliptic.Curve)
-		for n, id := range hsClassicAuthAlgorithms {
-			if id == sigEC {
-				return n, nil
-			}
-		}
-	} else {
-		lID := sigID.(liboqs_sig.ID)
-		
-		for n, id := range hsHybridAuthAlgorithms {
-			if id == lID {
-				return n, nil
-			}
+	lID := sigID.(liboqs_sig.ID)
+	
+	for n, id := range hsHybridSignatureAlgorithms {
+		if id == lID {
+			return n, nil
 		}
 	}
-	return "0", errors.New("ERROR: Auth Algorithm not found")
+
+	return "0", errors.New("Error: signature algorithm not found")
 }
 
 // Creates a certificate with the algorithm specified by pubkeyAlgo, signed by signer with signerPrivKey
@@ -318,34 +248,16 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 		if err != nil {
 			return nil, nil, err
 		}
-
-	} else if scheme, ok := pubkeyAlgo.(sign.Scheme); ok { // CIRCL Signature
-		pub, priv, err = scheme.GenerateKey()
-
-		if err != nil {
-			log.Fatalf("Failed to generate private key: %v", err)
-		}
 	} else if scheme, ok := pubkeyAlgo.(liboqs_sig.ID); ok { // Liboqs Hybrid Signature
 		pub, priv, err = liboqs_sig.GenerateKey(scheme)
 
 		if err != nil {
 			log.Fatalf("Failed to generate private key: %v", err)
 		}
-	} else if scheme, ok := pubkeyAlgo.(elliptic.Curve); ok {  // ECDSA
-		privECDSA, err := ecdsa.GenerateKey(scheme, rand.Reader)
-		if err != nil {
-			log.Fatalf("Failed to generate private key: %v", err)
-		}
-
-		pub = &privECDSA.PublicKey
-
-		priv = privECDSA
 	}
 
 	notBefore := time.Now()
-
 	notAfter := notBefore.Add(_validFor)
-
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
@@ -464,8 +376,6 @@ func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 
 	if *pqtls {
 		ccfg.PQTLSEnabled = true
-		clientKeyUsage = x509.KeyUsageDigitalSignature
-	} else if *classic {
 		clientKeyUsage = x509.KeyUsageDigitalSignature
 	} else {
 		ccfg.KEMTLSEnabled = true
@@ -704,56 +614,24 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 
 		cconnState = client.ConnectionState()
 
-		if *pqtls {
-			if cconnState.DidPQTLS {
-
-				if *clientAuth {
-
-					if cconnState.DidClientAuthentication {
-						log.Println("Client Success using PQTLS with mutual authentication")
-					} else {
-						log.Println("Client unsuccessful PQTLS with mutual authentication")
-						return timingState, cconnState, nil, false
-					}
-
-				} else {
-					log.Println("Client Success using PQTLS")
-				}
-			} else {
-				log.Println("Client unsuccessful PQTLS")
-				return timingState, cconnState, nil, false
-			}
-		} else if *classic {
-			if *clientAuth {
-				if cconnState.DidClientAuthentication {
-					log.Println("Client Success using TLS with mutual authentication")
-				} else {
-					log.Println("Client unsuccessful TLS with mutual authentication")
-					return timingState, cconnState, nil, false
-				}			
-			} else {
-				log.Println("Client Success using TLS")
-			}
-		} else {
-			if cconnState.DidKEMTLS {
-				if *clientAuth {
-
-					if cconnState.DidClientAuthentication {
-						log.Println("Client Success using KEMTLS with mutual authentication")
-					} else {
-						log.Println("Client unsuccessful KEMTLS with mutual authentication")
-						return timingState, cconnState, nil, false		
-					}
-
-				} else {
-					log.Println("Client Success using KEMTLS")
-				}
-
-			} else {
-				log.Println("Client unsuccessful KEMTLS")
-				return timingState, cconnState, nil, false
-			}
+		if *pqtls && !cconnState.DidPQTLS {
+			log.Println("Client unsuccessful PQTLS")
+			return timingState, cconnState, nil, false
 		}
+
+		if *clientAuth && !cconnState.DidClientAuthentication {					
+			if *pqtls {
+				log.Println("Client unsuccessful PQTLS with mutual authentication")	
+			} else {
+				log.Println("Client unsuccessful KEMTLS with mutual authentication")	
+			}
+			return timingState, cconnState, nil, false				
+		}
+
+		if !*pqtls && !cconnState.DidKEMTLS {
+			log.Println("Client unsuccessful KEMTLS")
+			return timingState, cconnState, nil, false
+		}		
 	}
 
 	return timingState, cconnState, nil, true

@@ -95,7 +95,7 @@ func tlsInitCSV() {
 	}
 	csvwriter := csv.NewWriter(csvFile)
 
-	header := []string{"KEXAlgo", "authAlgo", "timingFullProtocol", "timingProcessServerHello", "timingWriteClientHello"}
+	header := []string{"KEXAlgo", "authAlgo", "timingFullProtocol/timingSendAppData", "timingProcessServerHello", "timingWriteClientHello"}
 
 	csvwriter.Write(header)
 	csvwriter.Flush()

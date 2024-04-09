@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"regexp"
 	"sync"
 	"strconv"
 )
@@ -55,7 +54,7 @@ func startServerHybrid(clientMsg, serverMsg string, serverConfig *tls.Config, ip
 	
 }
 
-func launchServer() {
+func main() {
 	fmt.Println("Starting servers...")
 
 	flag.Parse()
@@ -67,30 +66,20 @@ func launchServer() {
 	if *isHTTP {
 		keysKEX = []string{*kex}
 		keysAuth = []string{*auth}
-	} else {
-		if *classic {
-			keysKEX = testsClassicAlgorithms
-			keysAuth = testsClassicAlgorithms
-		} else {  // PQTLS and KEMTLS
-			keysKEX = testsKEXAlgorithms
-			keysAuth = testsAuthAlgorithms
-		}		
-
+	} else {	
+		keysKEX = testsKEXAlgorithms
+		keysAuth = testsSignatureAlgorithms
 		if *classicMcEliece {
 			keysKEX = append(keysKEX, "P256_Classic-McEliece-348864")
 		}
 	}
 
-	reLevel1 := regexp.MustCompile(`P256`)
-	reLevel3 := regexp.MustCompile(`P384`)
-	reLevel5 := regexp.MustCompile(`P521`)
-
 	securityLevelNum := 1
 	securityLevelKauthNum := 1
 
-	if !*pqtls && !*classic {
+	if !*pqtls {
 		kemtlsInitCSVServer()
-		//for each algo
+		
 		for _, k := range keysKEX {
 			strport := fmt.Sprintf("%d", port)
 
@@ -130,15 +119,15 @@ func launchServer() {
 			serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
 			wg.Add(1)
-			//start
-			fmt.Println("Starting " + k + " Hybrid KEMTLS server at " + *IPserver + ":" + strport + "...")
+			
+			//start		
+			fmt.Printf("Starting Hybrid KEMTLS server at %s:%s  |  KEX: %s  Auth: %s\n", *IPserver, strport, k, k)
+			
 			startServerHybrid(clientHSMsg, serverHSMsg, serverConfig, *IPserver, strport)
 
 			port++
 		}
 	} else {
-
-		i := 0
 		tlsInitCSVServer()
 
 		for _, kAuth := range keysAuth {
@@ -150,21 +139,12 @@ func launchServer() {
 				if err != nil {
 					log.Fatal(err)
 				}
-				//fmt.Println(kAuth + " " + k)
 
 				securityLevelNum = getSecurityLevel(k)
 				securityLevelKauthNum = getSecurityLevel(kAuth)
 
 				// auth in the same level
 				if securityLevelNum != securityLevelKauthNum {
-					continue
-				}
-
-				//only hybrids
-				if !reLevel1.MatchString(k) && !reLevel3.MatchString(k) && !reLevel5.MatchString(k) {
-					continue
-				}
-				if !reLevel1.MatchString(kAuth) && !reLevel3.MatchString(kAuth) && !reLevel5.MatchString(kAuth) {
 					continue
 				}
 
@@ -180,18 +160,11 @@ func launchServer() {
 				wg.Add(1)
 				//start
 
-				if *classic {
-
-				} else {
-
-
-				}
-				fmt.Println(fmt.Sprintf("%v", i) + " Starting " + k + " TLS " + kAuth + " server at " + *IPserver + ":" + strport + "...")
+				fmt.Printf("Starting Hybrid TLS server at %s:%s  |  KEX: %s  Auth: %s", *IPserver, strport, k, kAuth)
 
 				startServerHybrid(clientHSMsg, serverHSMsg, serverConfig, *IPserver, strport)
 
 				port++
-				i++
 			}
 		}
 	}
@@ -199,6 +172,3 @@ func launchServer() {
 	wg.Wait() //endless but required
 }
 
-func main() {
-	launchServer()
-}
