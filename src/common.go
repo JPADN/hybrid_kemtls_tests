@@ -73,56 +73,44 @@ var (
 	serverHSMsg = "hello, client"	
 )
 
-// Initialize client TLS configuration and certificate chain
-func initClientAndAuth(k, kAuth string) (*tls.Config, error) {
-	var clientConfig *tls.Config
+// Initialize TLS configuration and certificate chain for client/server
+func initConfigurationAndAuth(kexAlgoName, authAlgoName string, isClient bool) (*tls.Config, error) {
+	kexSecLevel := getSecurityLevel(kexAlgoName)
+	authSecLevel := getSecurityLevel(authAlgoName)
+
+	// auth in the same level
+	if kexSecLevel != authSecLevel {
+		return nil, nil
+	}
 	
-	kexCurveID, err := nameToCurveID(k)
+	kexAlgo, err := nameToCurveID(kexAlgoName)
 	if err != nil {
 		return nil, err
-	}	
+	}		
 	
-	securityLevelNum := getSecurityLevel(k)
-	
-	rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)	
+	rootCertX509, intCACert, intCAPriv := constructChain(kexSecLevel)	
 
-	if *pqtls || *classic {
-		var reLevel1, reLevel3, reLevel5 *regexp.Regexp
-
-		//want same levels for the algos
-		reLevel1 = regexp.MustCompile(`P256`)
-		reLevel3 = regexp.MustCompile(`P384`)
-		reLevel5 = regexp.MustCompile(`P521`)
-				
-		securityLevelKauthNum := getSecurityLevel(kAuth)
-
-		// auth in the same level
-		if securityLevelNum != securityLevelKauthNum {
-			return nil, nil
-		}
-
-		//only hybrids
-		if !reLevel1.MatchString(k) && !reLevel3.MatchString(k) && !reLevel5.MatchString(k) {
-			return nil, nil
-		}
-		if !reLevel1.MatchString(kAuth) && !reLevel3.MatchString(kAuth) && !reLevel5.MatchString(kAuth) {
-			return nil, nil
-		}
-
-		authSig := nameToSigID(kAuth)
-		clientConfig = initClient(authSig, intCACert, intCAPriv, rootCertX509)
+	var authAlgo interface{}
+	if *pqtls {					
+		authAlgo, err = nameToSigID(authAlgoName)
+		if err != nil {
+			return nil, err
+		}		
 	} else {
-		authCurveID, err := nameToCurveID(kAuth)
+		authAlgo, err = nameToCurveID(authAlgoName)
 		if err != nil {
 			return nil, err
 		}	
-
-		clientConfig = initClient(authCurveID, intCACert, intCAPriv, rootCertX509)
 	}
 
-	clientConfig.CurvePreferences = []tls.CurveID{kexCurveID}
-
-	return clientConfig, nil
+	var config *tls.Config
+	if isClient {
+		config = initClient(kexAlgo, authAlgo, intCACert, intCAPriv, rootCertX509)
+	} else {
+		config = initServer(kexAlgo, authAlgo, intCACert, intCAPriv, rootCertX509)
+	}
+	
+	return config, nil
 }
 
 // Construct Certificate Authority chain (Root CA and Intermediate CA)
@@ -307,22 +295,19 @@ func createCertificate(pubkeyAlgo interface{}, signer *x509.Certificate, signerP
 }
 
 // Initialize Server's TLS configuration
-func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
-	var err error
-	var cfg *tls.Config
+func initServer(kexAlgo tls.CurveID, certAlgo interface{}, intCACert *x509.Certificate, intCAPriv interface{}, rootCertX509 *x509.Certificate) *tls.Config {
 	var serverKeyUsage x509.KeyUsage
 
-	cfg = &tls.Config{
+	cfg := &tls.Config{
 		MinVersion:                 tls.VersionTLS10,
 		MaxVersion:                 tls.VersionTLS13,
 		InsecureSkipVerify:         false,
 		SupportDelegatedCredential: false,
+		CurvePreferences: []tls.CurveID{kexAlgo},
 	}
 
 	if *pqtls {
 		cfg.PQTLSEnabled = true
-		serverKeyUsage = x509.KeyUsageDigitalSignature
-	} else if *classic {
 		serverKeyUsage = x509.KeyUsageDigitalSignature
 	} else {
 		cfg.KEMTLSEnabled = true
@@ -331,6 +316,8 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 
 	if *clientAuth {
 		cfg.ClientAuth = tls.RequireAndVerifyClientCert
+		cfg.ClientCAs = x509.NewCertPool()
+		cfg.ClientCAs.AddCert(rootCertX509)
 	}
 
 	serverExtKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
@@ -340,31 +327,25 @@ func initServer(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 		panic(err)
 	}
 
-	hybridCert := new(tls.Certificate)
+	tlsCert := new(tls.Certificate)
 
-	hybridCert.Certificate = append(hybridCert.Certificate, certBytes)
-	hybridCert.PrivateKey = certPriv
-
-	hybridCert.Leaf, err = x509.ParseCertificate(hybridCert.Certificate[0])
+	tlsCert.Certificate = append(tlsCert.Certificate, certBytes)
+	tlsCert.PrivateKey = certPriv
+	tlsCert.Leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
 	if err != nil {
 		panic(err)
 	}
 
-	hybridCert.Certificate = append(hybridCert.Certificate, intCACert.Raw)
+	tlsCert.Certificate = append(tlsCert.Certificate, intCACert.Raw)
 
 	cfg.Certificates = make([]tls.Certificate, 1)
-	cfg.Certificates[0] = *hybridCert
-
-	if *clientAuth {
-		cfg.ClientCAs = x509.NewCertPool()
-		cfg.ClientCAs.AddCert(rootCA)
-	}
+	cfg.Certificates[0] = *tlsCert
 
 	return cfg
 }
 
 // Initializes Client's TLS configuration
-func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
+func initClient(kexAlgo tls.CurveID, certAlgo interface{}, intCACert *x509.Certificate, intCAPriv interface{}, rootCA *x509.Certificate) *tls.Config {
 	var clientKeyUsage x509.KeyUsage
 
 	ccfg := &tls.Config{
@@ -372,6 +353,7 @@ func initClient(certAlgo interface{}, intCACert *x509.Certificate, intCAPriv int
 		MaxVersion:                 tls.VersionTLS13,
 		InsecureSkipVerify:         false,
 		SupportDelegatedCredential: false,
+		CurvePreferences: []tls.CurveID{kexAlgo},
 	}
 
 	if *pqtls {

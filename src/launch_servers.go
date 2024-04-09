@@ -74,49 +74,31 @@ func main() {
 		}
 	}
 
-	securityLevelNum := 1
-	securityLevelKauthNum := 1
-
 	if !*pqtls {
 		kemtlsInitCSVServer()
 		
 		for _, k := range keysKEX {
 			strport := fmt.Sprintf("%d", port)
 
-			kexCurveID, err := nameToCurveID(k)
+			var kAuth string
+
+			if *classicMcEliece {
+				secLevel := getSecurityLevel(k)				
+				kAuth = classicMcElieceAlgorithms[secLevel]				
+			} else if *isHTTP && *auth != "" {
+				kAuth = *auth
+			} else {
+				kAuth = k
+			}
+
+			serverConfig, err := initConfigurationAndAuth(k, kAuth, false)
 			if err != nil {
 				log.Fatal(err)
 			}
-
-			var authCurveID tls.CurveID
-
-			if *classicMcEliece {
-				authCurveID = tls.P256_Classic_McEliece_348864
-			} else {
-				authCurveID = kexCurveID
+			if serverConfig == nil {
+				continue
 			}
 
-			if *isHTTP {
-				if *auth != "" {
-					authCurveID, err = nameToCurveID(*auth)
-					if err != nil {
-						panic(err)
-					}
-				} else {
-					authCurveID = kexCurveID	
-				}				
-			} else {
-				authCurveID = kexCurveID
-			}
-			
-			securityLevelNum = getSecurityLevel(k)
-
-			rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)
-
-			serverConfig := initServer(authCurveID, intCACert, intCAPriv, rootCertX509)
-
-			// Select here the algorithm to be used in the KEX
-			serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
 			wg.Add(1)
 			
@@ -134,28 +116,14 @@ func main() {
 
 			for _, k := range keysKEX {
 				strport := fmt.Sprintf("%d", port)
-
-				kexCurveID, err := nameToCurveID(k)
+				
+				serverConfig, err := initConfigurationAndAuth(k, kAuth, false)
 				if err != nil {
 					log.Fatal(err)
 				}
-
-				securityLevelNum = getSecurityLevel(k)
-				securityLevelKauthNum = getSecurityLevel(kAuth)
-
-				// auth in the same level
-				if securityLevelNum != securityLevelKauthNum {
+				if serverConfig == nil {
 					continue
 				}
-
-				authSigID := nameToSigID(kAuth)
-
-				rootCertX509, intCACert, intCAPriv := constructChain(securityLevelNum)
-
-				serverConfig := initServer(authSigID, intCACert, intCAPriv, rootCertX509)
-
-				// Select here the algorithm to be used in the KEX
-				serverConfig.CurvePreferences = []tls.CurveID{kexCurveID}
 
 				wg.Add(1)
 				//start

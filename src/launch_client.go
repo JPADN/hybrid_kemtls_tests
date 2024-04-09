@@ -46,7 +46,8 @@ func main() {
 			var kAuth string
 			
 			if *classicMcEliece {
-				kAuth = "P256_Classic-McEliece-348864"
+				secLevel := getSecurityLevel(k)				
+				kAuth = classicMcElieceAlgorithms[secLevel]		
 			} else {
 				kAuth = k
 			}
@@ -55,7 +56,7 @@ func main() {
 			strport := fmt.Sprintf("%d", port)
 
 
-			clientConfig, err := initClientAndAuth(k, kAuth)
+			clientConfig, err := initConfigurationAndAuth(k, kAuth, true)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -110,8 +111,6 @@ func main() {
 			algoResults.authName = kAuth
 
 			algoResultsList = append(algoResultsList, algoResults)
-
-
 			port++
 		}
 
@@ -132,7 +131,7 @@ func main() {
 
 				strport := fmt.Sprintf("%d", port)
 
-				clientConfig, err := initClientAndAuth(k, kAuth)
+				clientConfig, err := initConfigurationAndAuth(k, kAuth, true)
 				if err != nil {
 					log.Fatal(err)
 				}
