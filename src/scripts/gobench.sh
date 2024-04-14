@@ -18,9 +18,9 @@ source config.sh
 cd ..
 
 go run gobench.go common.go parse_hybrid_root.go stats_tls.go stats_kemtls.go plot_functions.go \
--benchkex P256_Kyber512 \
--benchauth P256_Dilithium2 \
+-benchkex P256_HQC_128 \
+-benchauth P256_HQC_128 \
 -u https://127.0.0.1:4433 \
--c 10 \
--t 5 \
+-c 100 \
+-t 10 \
 ${MUTUAL_FLAGS}
