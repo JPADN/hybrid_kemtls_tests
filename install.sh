@@ -4,7 +4,7 @@ read -p "Path to the Hybrid KEMTLS Go stdlib: "  GO_KEMTLS_ROOT
 WORKING_DIR=$PWD
 
 echo "Installing liboqs dependencies..."
-sudo apt install astyle cmake gcc ninja-build libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz python3-yaml
+sudo apt -y install astyle cmake gcc ninja-build libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz python3-yaml
 
 git clone --branch 0.10.0 https://github.com/open-quantum-safe/liboqs.git 
 cd liboqs
