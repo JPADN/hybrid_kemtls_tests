@@ -1,6 +1,7 @@
 #!/bin/bash
 
-read -p "Path to the Hybrid KEMTLS Go stdlib: "  GO_KEMTLS_ROOT
+# read -p "Path to the Hybrid KEMTLS Go stdlib: "  GO_KEMTLS_ROOT
+GO_KEMTLS_ROOT=~/go-kemtls
 WORKING_DIR=$PWD
 
 echo "Installing liboqs dependencies..."
