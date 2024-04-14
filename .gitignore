@@ -15,5 +15,6 @@ liboqs-go/
 temp_client/
 temp_server/
 temp_root/
+temp_gen_root/
 clean.sh
 debug.sh

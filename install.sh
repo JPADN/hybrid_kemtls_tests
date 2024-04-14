@@ -6,7 +6,7 @@ WORKING_DIR=$PWD
 echo "Installing liboqs dependencies..."
 sudo apt install astyle cmake gcc ninja-build libssl-dev python3-pytest python3-pytest-xdist unzip xsltproc doxygen graphviz python3-yaml
 
-git clone --branch 0.7.1 https://github.com/open-quantum-safe/liboqs.git 
+git clone --branch 0.10.0 https://github.com/open-quantum-safe/liboqs.git 
 cd liboqs
 mkdir build && cd build
 cmake -GNinja -DBUILD_SHARED_LIBS=ON ..
@@ -22,7 +22,7 @@ echo "'/usr/local/lib' was appended temporarily to LD_LIBRARY_PATH, to make it p
 export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/local/lib
 "
 
-git clone --branch 0.7.1 https://github.com/open-quantum-safe/liboqs-go
+git clone --branch 0.10.0  https://github.com/open-quantum-safe/liboqs-go
 
 export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${WORKING_DIR}/liboqs-go/.config
 
