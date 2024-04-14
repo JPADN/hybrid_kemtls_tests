@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/ecdsa"
 	"crypto/kem"
 	"crypto/liboqs_sig"
 	"crypto/rand"
@@ -23,16 +22,13 @@ import (
 // Command line flags
 var (
 	kex = flag.String("kex", "", "Key Exchange algorithm")
-	auth = flag.String("authserver", "", "Authentication algorithm")
-	rootCert = flag.String("rootcert", "", "Path to the root CA certificate PEM file")
-	rootKey = flag.String("rootkey", "", "Path to the root CA private key PEM file")
+	auth = flag.String("authserver", "", "Authentication algorithm")	
 	hybridRootFamily = flag.String("hybridroot", "", "Hybrid Root CA Algorithm family name")
 	IPserver   = flag.String("ipserver", "", "IP of the KEMTLS/TLS Server")
 	IPclient   = flag.String("ipclient", "", "IP of the KEMTLS/TLS Client Auth Certificate")
 	handshakes = flag.Int("handshakes", 1, "Number of Handshakes desired")
 	clientAuth = flag.Bool("clientauth", false, "Client authentication")
 	pqtls      = flag.Bool("pqtls", false, "PQTLS")
-	classic    = flag.Bool("classic", false, "TLS with classic algorithms")
 	cachedCert = flag.Bool("cachedcert", false, "KEMTLS PDK or TLS(cached) server cert.")
 	isHTTP = flag.Bool("http", false, "HTTP server")
 	classicMcEliece = flag.Bool("classicmceliece", false, "Classic McEliece tests")
@@ -40,9 +36,9 @@ var (
 
 var (
 	hsKEXAlgorithms = map[string]tls.CurveID{		
-		// "P256_BIKE_L1": tls.P256_BIKE_L1, "P384_BIKE_L3": tls.P384_BIKE_L3, "P521_BIKE_L5": tls.P521_BIKE_L5,
-		// "P256_HQC_128": tls.P256_HQC_128, "P384_HQC_192": tls.P384_HQC_192, "P521_HQC_256": tls.P521_HQC_256,
-		"P256_Kyber512": tls.P256_Kyber512, "P384_Kyber768": tls.P384_Kyber768, "P521_Kyber1024": tls.P521_Kyber1024,
+		"P256_BIKE_L1": tls.P256_BIKE_L1, "P384_BIKE_L3": tls.P384_BIKE_L3, "P521_BIKE_L5": tls.P521_BIKE_L5,
+		"P256_HQC_128": tls.P256_HQC_128, "P384_HQC_192": tls.P384_HQC_192, "P521_HQC_256": tls.P521_HQC_256,
+		"P256_Classic_McEliece_348864": tls.P256_Classic_McEliece_348864, "P384_Classic_McEliece_460896": tls.P384_Classic_McEliece_460896, "P521_Classic_McEliece_6688128": tls.P521_Classic_McEliece_6688128,
 	}
 
 	hsHybridSignatureAlgorithms = map[string]liboqs_sig.ID{  // TODO
@@ -53,10 +49,10 @@ var (
 
 	// Algorithms to be used in the handshake tests
 	testsKEXAlgorithms = []string{
-		// "P256_HQC_128", "P256_BIKE_L1", 
-		// "P384_HQC_192", "P384_BIKE_L3", 
-		// "P521_HQC_256","P521_BIKE_L5",
-		"P256_Kyber512", "P384_Kyber768", "P521_Kyber1024",
+		"P256_HQC_128", "P256_BIKE_L1", 
+		"P384_HQC_192", "P384_BIKE_L3", 
+		"P521_HQC_256", "P521_BIKE_L5",
+		// "P256_Classic_McEliece_348864", "P384_Classic_McEliece_460896", "P521_Classic_McEliece_6688128",
 	}
 
 	testsSignatureAlgorithms = []string{  // TODO
@@ -65,8 +61,8 @@ var (
 		"P521_Dilithium5",
 	}
 
-	classicMcElieceAlgorithms = map[int]string {
-		1: "Classic_McEliece1", 3: "Classic_McEliece3", 5: "Classic_McEliece5",  // TODO
+	classicMcElieceAlgorithmsPerSecLevel = map[int]string {
+		1: "P256_Classic_McEliece_348864", 3: "P384_Classic_McEliece_460896", 5: "P521_Classic_McEliece_6688128",
 	}
 
 	clientHSMsg = "hello, server"
@@ -74,7 +70,7 @@ var (
 )
 
 // Initialize TLS configuration and certificate chain for client/server
-func initConfigurationAndAuth(kexAlgoName, authAlgoName string, isClient bool) (*tls.Config, error) {
+func initConfigurationAndCertChain(kexAlgoName, authAlgoName string, isClient bool) (*tls.Config, error) {
 	kexSecLevel := getSecurityLevel(kexAlgoName)
 	authSecLevel := getSecurityLevel(authAlgoName)
 
@@ -88,7 +84,7 @@ func initConfigurationAndAuth(kexAlgoName, authAlgoName string, isClient bool) (
 		return nil, err
 	}		
 	
-	rootCertX509, intCACert, intCAPriv := constructChain(kexSecLevel)	
+	rootCertX509, intCACert, intCAPriv := constructChain(3)	
 
 	var authAlgo interface{}
 	if *pqtls {					
@@ -118,7 +114,7 @@ func constructChain(securityLevel int) (rootCertX509 *x509.Certificate, intCACer
 
 	var intCAAlgo, rootPriv interface{}
 
-	rootCertX509, rootPriv = constructHybridRoot(*hybridRootFamily, securityLevel)
+	rootCertX509, rootPriv = constructHybridRoot(*hybridRootFamily, 5)
 
 	switch securityLevel {
 	case 1:
@@ -484,9 +480,9 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 
 			cconnState = server.ConnectionState()			
 
-			if *pqtls || *classic {
+			if *pqtls {
 
-				if (*pqtls && cconnState.DidPQTLS) || *classic {
+				if *pqtls && cconnState.DidPQTLS {
 										
 					if *clientAuth {
 						if !cconnState.DidClientAuthentication {
@@ -507,15 +503,10 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 						if e != nil {
 							fmt.Print("4 %v", err)
 						}
-
-						if *classic {							
-							priv, _ := tlsConfig.Certificates[0].PrivateKey.(*ecdsa.PrivateKey)
-							kAuth, err = sigIDToName(priv.PublicKey.Curve)							
-						} else {							
-							priv, _ := tlsConfig.Certificates[0].PrivateKey.(*liboqs_sig.PrivateKey)
-							kAuth, err = sigIDToName(priv.SigId)
-						}
 						
+						priv, _ := tlsConfig.Certificates[0].PrivateKey.(*liboqs_sig.PrivateKey)
+						kAuth, err = sigIDToName(priv.SigId)
+											
 						if err != nil {
 							fmt.Print("5 %v", err)
 						}
@@ -558,6 +549,15 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 							fmt.Print("4 %v", err)
 						}
 
+						priv, ok := tlsConfig.Certificates[0].PrivateKey.(*kem.PrivateKey)
+						if !ok {
+							panic("TLS certificate does not contain a KEM private key")
+						}
+						kAuth, err := kem.GetLiboqsKEMName(priv.KEMId)											
+						if err != nil {
+							panic(err)
+						}						
+
 						handshakeSizes["ServerHello"] = cconnState.ServerHandshakeSizes.ServerHello
 						handshakeSizes["EncryptedExtensions"] = cconnState.ServerHandshakeSizes.EncryptedExtensions
 						handshakeSizes["Certificate"] = cconnState.ServerHandshakeSizes.Certificate
@@ -565,7 +565,7 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 						handshakeSizes["ServerKEMCiphertext"] = cconnState.ServerHandshakeSizes.ServerKEMCiphertext
 						handshakeSizes["Finished"] = cconnState.ServerHandshakeSizes.Finished
 
-						kemtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsReadKEMCiphertext, kKEX, countConnections, handshakeSizes)
+						kemtlsSaveCSVServer(timingsFullProtocol, timingsWriteServerHello, timingsReadKEMCiphertext, kKEX, kAuth, countConnections, handshakeSizes)
 						countConnections = 0
 						timingsFullProtocol = nil
 						timingsReadKEMCiphertext = nil

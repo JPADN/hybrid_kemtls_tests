@@ -6,8 +6,6 @@ import (
 	"log"
 	"math"
 	"os"
-
-	"gonum.org/v1/plot/plotter"
 )
 
 type TLSClientResultsInfo struct {
@@ -156,13 +154,6 @@ func tlsSaveCSV(timingsFullProtocol []float64, timingsProcessServerHello []float
 	}
 	csvwriter.Flush()
 	csvFile.Close()
-}
-
-func tlsResultsExporter(results []TLSClientResultsInfo, boxPlotValues []plotter.Values, names []string, hs int) {
-	tlsPrintStatistics(results)
-	//plots are not needed (here) since:
-	//we are not comparing PQC-only vs Hybrid PQTLS
-	//we are not testing KEMTLS together with PQTLS
 }
 
 func tlsInitCSVServer() {

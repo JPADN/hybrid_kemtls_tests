@@ -5,8 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"sync"
+	"os"
 	"strconv"
+	"sync"
 )
 
 var wg sync.WaitGroup
@@ -56,7 +57,8 @@ func startServerHybrid(clientMsg, serverMsg string, serverConfig *tls.Config, ip
 
 func main() {
 	fmt.Println("Starting servers...")
-
+	fmt.Printf("Process PID is %d\n", os.Getpid())
+	
 	flag.Parse()
 
 	port := 4433
@@ -68,10 +70,7 @@ func main() {
 		keysAuth = []string{*auth}
 	} else {	
 		keysKEX = testsKEXAlgorithms
-		keysAuth = testsSignatureAlgorithms
-		if *classicMcEliece {
-			keysKEX = append(keysKEX, "P256_Classic-McEliece-348864")
-		}
+		keysAuth = testsSignatureAlgorithms		
 	}
 
 	if !*pqtls {
@@ -84,21 +83,20 @@ func main() {
 
 			if *classicMcEliece {
 				secLevel := getSecurityLevel(k)				
-				kAuth = classicMcElieceAlgorithms[secLevel]				
+				kAuth = classicMcElieceAlgorithmsPerSecLevel[secLevel]				
 			} else if *isHTTP && *auth != "" {
 				kAuth = *auth
 			} else {
 				kAuth = k
 			}
 
-			serverConfig, err := initConfigurationAndAuth(k, kAuth, false)
+			serverConfig, err := initConfigurationAndCertChain(k, kAuth, false)
 			if err != nil {
 				log.Fatal(err)
 			}
 			if serverConfig == nil {
 				continue
 			}
-
 
 			wg.Add(1)
 			
@@ -117,7 +115,7 @@ func main() {
 			for _, k := range keysKEX {
 				strport := fmt.Sprintf("%d", port)
 				
-				serverConfig, err := initConfigurationAndAuth(k, kAuth, false)
+				serverConfig, err := initConfigurationAndCertChain(k, kAuth, false)
 				if err != nil {
 					log.Fatal(err)
 				}

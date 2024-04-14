@@ -66,6 +66,32 @@ func kemtlsComputeStats(timingsFullProtocol []float64, timingsSendAppData []floa
 	return r
 }
 
+//Stats: Avg, Stdev.
+func computeStats(measurements []float64) (avg float64, stdev float64) {
+
+	//counts
+	var countTotalTime float64	
+
+	numOfMeasurements := len(measurements) 
+
+	//Average
+	countTotalTime = 0;
+	for i := 0; i < numOfMeasurements; i++ {
+		countTotalTime += measurements[i]		
+	}
+
+	avg = (countTotalTime) / float64(numOfMeasurements)
+
+	//stdev
+	for i := 0; i < numOfMeasurements; i++ {
+		stdev += math.Pow(float64(measurements[i]) - avg, 2)
+	}
+
+	stdev = math.Sqrt(stdev / float64(numOfMeasurements))
+
+	return avg, stdev
+}
+
 //print results
 func kemtlsPrintStatistics(results []KEMTLSClientResultsInfo) {
 	//header
@@ -202,7 +228,7 @@ func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, 
 	csvFile.Close()
 }
 
-func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsReadKEMCiphertext []float64, name string, hs int, sizes map[string]uint32) {
+func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsReadKEMCiphertext []float64, kexAlgo string, authAlgo string, hs int, sizes map[string]uint32) {
 	csvFile, err := os.OpenFile("csv/kemtls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
@@ -212,7 +238,7 @@ func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello 
 
 	for i := 0; i < hs; i++ {
 		arrayStr := []string{
-			name, 
+			kexAlgo, authAlgo,
 			fmt.Sprintf("%f", timingsFullProtocol[i]),
 			fmt.Sprintf("%f", timingsWriteServerHello[i]),
 			fmt.Sprintf("%f", timingsReadKEMCiphertext[i])}
@@ -233,7 +259,8 @@ func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello 
 
 	totalSizes := sizes["ServerHello"] + sizes["EncryptedExtensions"] + sizes["Certificate"] + sizes["CertificateRequest"] + sizes["ServerKEMCiphertext"] + sizes["Finished"]
 
-	arrayStr := []string{name, 
+	arrayStr := []string{
+		kexAlgo, authAlgo,
 		fmt.Sprintf("%d", sizes["ServerHello"]),
 		fmt.Sprintf("%d", sizes["EncryptedExtensions"]),
 		fmt.Sprintf("%d", sizes["Certificate"]),

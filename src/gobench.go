@@ -244,7 +244,7 @@ func NewConfiguration() *Configuration {
 
 	var err error
 	
-	configuration.myClient.TLSConfig, err = initClientAndAuth(*kexAlgo, *authAlgo)	
+	configuration.myClient.TLSConfig, err = initConfigurationAndCertChain(*kexAlgo, *authAlgo, true)	
 	if err != nil {
 		log.Fatalf("Error in initClientAndAuth: ", err)
 	}

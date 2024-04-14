@@ -47,7 +47,7 @@ func main() {
 			
 			if *classicMcEliece {
 				secLevel := getSecurityLevel(k)				
-				kAuth = classicMcElieceAlgorithms[secLevel]		
+				kAuth = classicMcElieceAlgorithmsPerSecLevel[secLevel]		
 			} else {
 				kAuth = k
 			}
@@ -56,7 +56,7 @@ func main() {
 			strport := fmt.Sprintf("%d", port)
 
 
-			clientConfig, err := initConfigurationAndAuth(k, kAuth, true)
+			clientConfig, err := initConfigurationAndCertChain(k, kAuth, true)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -131,7 +131,7 @@ func main() {
 
 				strport := fmt.Sprintf("%d", port)
 
-				clientConfig, err := initConfigurationAndAuth(k, kAuth, true)
+				clientConfig, err := initConfigurationAndCertChain(k, kAuth, true)
 				if err != nil {
 					log.Fatal(err)
 				}
