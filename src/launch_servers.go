@@ -101,7 +101,7 @@ func main() {
 			wg.Add(1)
 			
 			//start		
-			fmt.Printf("Starting Hybrid KEMTLS server at %s:%s  |  KEX: %s  Auth: %s\n", *IPserver, strport, k, k)
+			fmt.Printf("Starting Hybrid KEMTLS server at %s:%s  |  KEX: %s  Auth: %s\n", *IPserver, strport, k, kAuth)
 			
 			startServerHybrid(clientHSMsg, serverHSMsg, serverConfig, *IPserver, strport)
 
@@ -126,7 +126,7 @@ func main() {
 				wg.Add(1)
 				//start
 
-				fmt.Printf("Starting Hybrid TLS server at %s:%s  |  KEX: %s  Auth: %s", *IPserver, strport, k, kAuth)
+				fmt.Printf("Starting Hybrid PQTLS server at %s:%s  |  KEX: %s  Auth: %s", *IPserver, strport, k, kAuth)
 
 				startServerHybrid(clientHSMsg, serverHSMsg, serverConfig, *IPserver, strport)
 

@@ -36,6 +36,7 @@ var (
 
 var (
 	hsKEXAlgorithms = map[string]tls.CurveID{		
+		"P256_Kyber512": tls.P256_Kyber512, "P384_Kyber768": tls.P384_Kyber768, "P521_Kyber1024": tls.P521_Kyber1024,
 		"P256_BIKE_L1": tls.P256_BIKE_L1, "P384_BIKE_L3": tls.P384_BIKE_L3, "P521_BIKE_L5": tls.P521_BIKE_L5,
 		"P256_HQC_128": tls.P256_HQC_128, "P384_HQC_192": tls.P384_HQC_192, "P521_HQC_256": tls.P521_HQC_256,
 		"P256_Classic_McEliece_348864": tls.P256_Classic_McEliece_348864, "P384_Classic_McEliece_460896": tls.P384_Classic_McEliece_460896, "P521_Classic_McEliece_6688128": tls.P521_Classic_McEliece_6688128,

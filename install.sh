@@ -31,11 +31,21 @@ echo "'${WORKING_DIR}/liboqs-go/.config' was appended temporarily to PKG_CONFIG_
 export PKG_CONFIG_PATH=\$PKG_CONFIG_PATH:${WORKING_DIR}/liboqs-go/.config
 "
 
+wget https://go.dev/dl/go1.22.2.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.22.2.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+
 cd ${GO_KEMTLS_ROOT}/src
-./make.bash
+. make.bash
 
 export PATH=${GO_KEMTLS_ROOT}/bin:$PATH
 
 echo "'${GO_KEMTLS_ROOT}/bin' was appended temporarily to PATH, to make it permanent append the following in your ~/.profile:
 export PATH=\${GO_KEMTLS_ROOT}/bin:$PATH
 "
+
+echo "
+export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/local/lib
+export PKG_CONFIG_PATH=\$PKG_CONFIG_PATH:${WORKING_DIR}/liboqs-go/.config
+export PATH=${GO_KEMTLS_ROOT}/bin:\$PATH
+" | tee -a ~/.bashrc ~/.profile
