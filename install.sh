@@ -10,7 +10,7 @@ sudo apt -y install astyle cmake gcc ninja-build libssl-dev python3-pytest pytho
 git clone --branch 0.10.0 https://github.com/open-quantum-safe/liboqs.git 
 cd liboqs
 mkdir build && cd build
-cmake -GNinja -DBUILD_SHARED_LIBS=ON ..
+cmake -GNinja -DOQS_DIST_BUILD=ON -DBUILD_SHARED_LIBS=ON ..
 sudo ninja
 sudo ninja install
 
