@@ -16,5 +16,8 @@ temp_client/
 temp_server/
 temp_root/
 temp_gen_root/
+temp_bench/
 clean.sh
 debug.sh
+
+vm_script.sh

@@ -57,8 +57,11 @@ func startServerHybrid(clientMsg, serverMsg string, serverConfig *tls.Config, ip
 
 func main() {
 	fmt.Println("Starting servers...")
-	fmt.Printf("Process PID is %d\n", os.Getpid())
 	
+	if *isHTTP {
+		fmt.Printf("Process PID is %d\n", os.Getpid())
+	}
+		
 	flag.Parse()
 
 	port := 4433
