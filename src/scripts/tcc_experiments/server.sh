@@ -1,11 +1,11 @@
 #!/bin/bash
 
 SERVER_IP=127.0.0.1
-NUM_HANDSHAKES=1
-BENCHMARK_REPS=10
+NUM_HANDSHAKES=1000
+BENCHMARK_REPS=1000
 HYBRID_ROOT=dilithium
 
-cd ..
+cd ../..
 
 # KEMs and Signatures benchmark
 go run bench.go common.go parse_hybrid_root.go stats_kemtls.go stats_tls.go \
