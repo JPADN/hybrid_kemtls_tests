@@ -1,6 +1,5 @@
 *.csv
 *.pem
-*.txt
 *.crt
 *.key
 
