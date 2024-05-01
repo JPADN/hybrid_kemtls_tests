@@ -18,7 +18,6 @@ cd ${WORKING_DIR}
 
 # Setting LD_LIBRARY_PATH to point to the path to liboqs' library directory, e.g.
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
-
 echo "'/usr/local/lib' was appended temporarily to LD_LIBRARY_PATH, to make it permanent append the following in your ~/.profile:
 export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/local/lib
 "
@@ -26,7 +25,6 @@ export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/local/lib
 git clone --branch 0.10.0  https://github.com/open-quantum-safe/liboqs-go
 
 export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${WORKING_DIR}/liboqs-go/.config
-
 echo "'${WORKING_DIR}/liboqs-go/.config' was appended temporarily to PKG_CONFIG_PATH, to make it permanent append the following in your ~/.profile:
 export PKG_CONFIG_PATH=\$PKG_CONFIG_PATH:${WORKING_DIR}/liboqs-go/.config
 "
@@ -38,17 +36,16 @@ export PATH=$PATH:/usr/local/go/bin
 cd ${GO_KEMTLS_ROOT}/src
 . make.bash
 
-export GO_KEMTLS_ROOT=~/go-kemtls && \
-export WORKING_DIR=~/hybrid_kemtls_tests && \
-export PATH=${GO_KEMTLS_ROOT}/bin:$PATH && \
+export PATH=${GO_KEMTLS_ROOT}/bin:$PATH
+echo "'${GO_KEMTLS_ROOT}/bin' was appended temporarily to PATH, to make it permanent append the following in your ~/.profile:
+export PATH=\${GO_KEMTLS_ROOT}/bin:$PATH
+"
+
+# Persisting environment variables in ~/.bashrc and ~/.profile
 echo "
 export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/local/lib
 export PKG_CONFIG_PATH=\$PKG_CONFIG_PATH:${WORKING_DIR}/liboqs-go/.config
 export PATH=${GO_KEMTLS_ROOT}/bin:\$PATH
 " | tee -a ~/.bashrc ~/.profile
 
-
-echo "'${GO_KEMTLS_ROOT}/bin' was appended temporarily to PATH, to make it permanent append the following in your ~/.profile:
-export PATH=\${GO_KEMTLS_ROOT}/bin:$PATH
-"
 
