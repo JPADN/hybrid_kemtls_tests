@@ -125,8 +125,56 @@ func kemtlsPrintStatistics(results []KEMTLSClientResultsInfo) {
 	}
 }
 
+func getClientResultsFileName() string {
+	if *cachedCert {
+		if *classicMcEliece {
+			return "csv/kemtls-pdk-classic-mceliece-client.csv"
+		} else {
+			return "csv/kemtls-pdk-client.csv"
+		}		
+	} else {
+		return "csv/kemtls-client.csv"
+	}
+}
+
+func getServerResultsFileName() string {
+	if *cachedCert {
+		if *classicMcEliece {
+			return "csv/kemtls-pdk-classic-mceliece-server.csv"
+		} else {
+			return "csv/kemtls-pdk-server.csv"
+		}		
+	} else {
+		return "csv/kemtls-server.csv"
+	}
+}
+
+func getClientSizesResultsFileName() string {
+	if *cachedCert {
+		if *classicMcEliece {
+			return "csv/kemtls-pdk-classic-mceliece-client-sizes.csv"
+		} else {
+			return "csv/kemtls-pdk-client-sizes.csv"
+		}		
+	} else {
+		return "csv/kemtls-client-sizes.csv"
+	}
+}
+
+func getServerSizesResultsFileName() string {
+	if *cachedCert {
+		if *classicMcEliece {
+			return "csv/kemtls-pdk-classic-mceliece-server-sizes.csv"
+		} else {
+			return "csv/kemtls-pdk-server-sizes.csv"
+		}		
+	} else {
+		return "csv/kemtls-server-sizes.csv"
+	}
+}
+
 func kemtlsInitCSV() {
-	csvFile, err := os.Create("csv/kemtls-client.csv")
+	csvFile, err := os.Create(getClientResultsFileName())
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -138,7 +186,7 @@ func kemtlsInitCSV() {
 	csvwriter.Flush()
 	csvFile.Close()
 
-	csvFile, err = os.Create("csv/kemtls-client-sizes.csv")
+	csvFile, err = os.Create(getClientSizesResultsFileName())
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -152,7 +200,7 @@ func kemtlsInitCSV() {
 }
 
 func kemtlsInitCSVServer() {
-	csvFile, err := os.Create("csv/kemtls-server.csv")
+	csvFile, err := os.Create(getServerResultsFileName())
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -164,7 +212,7 @@ func kemtlsInitCSVServer() {
 	csvwriter.Flush()
 	csvFile.Close()
 
-	csvFile, err = os.Create("csv/kemtls-server-sizes.csv")
+	csvFile, err = os.Create(getServerSizesResultsFileName())
 	if err != nil {
 		log.Fatalf("failed creating file: %s", err)
 	}
@@ -180,7 +228,7 @@ func kemtlsInitCSVServer() {
 
 
 func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, timingsProcessServerHello []float64, timingsWriteClientHello []float64, timingsWriteKEMCiphertext []float64, kexAlgo string, authAlgo string, hs int, sizes map[string]uint32) {
-	csvFile, err := os.OpenFile("csv/kemtls-client.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	csvFile, err := os.OpenFile(getClientResultsFileName(), os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}
@@ -203,7 +251,7 @@ func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, 
 	}
 	csvFile.Close()
 
-	csvFile, err = os.OpenFile("csv/kemtls-client-sizes.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	csvFile, err = os.OpenFile(getClientSizesResultsFileName(), os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}
@@ -229,7 +277,7 @@ func kemtlsSaveCSV(timingsFullProtocol []float64, timingsSendAppData []float64, 
 }
 
 func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello []float64, timingsReadKEMCiphertext []float64, kexAlgo string, authAlgo string, hs int, sizes map[string]uint32) {
-	csvFile, err := os.OpenFile("csv/kemtls-server.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	csvFile, err := os.OpenFile(getServerResultsFileName(), os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}
@@ -250,7 +298,7 @@ func kemtlsSaveCSVServer(timingsFullProtocol []float64, timingsWriteServerHello 
 	}
 	csvFile.Close()
 
-	csvFile, err = os.OpenFile("csv/kemtls-server-sizes.csv", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	csvFile, err = os.OpenFile(getServerSizesResultsFileName(), os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}

@@ -3,12 +3,16 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
+	"encoding/csv"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net"
+	netURL "net/url"
 	"os"
 	"os/signal"
 	"runtime"
@@ -16,8 +20,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	netURL "net/url"
-	"crypto/tls"
 
 	"github.com/valyala/fasthttp"
 )
@@ -99,7 +101,20 @@ func init() {
 	flag.StringVar(&authHeader, "auth", "", "Authorization header")
 }
 
-func printResults(results map[int]*Result, startTime time.Time) {
+func getHostFromURL(url string) string {
+	u, err := netURL.Parse(url)
+	if err != nil {
+		panic(err)
+	}
+
+	host, _, err := net.SplitHostPort(u.Host)	
+	if err != nil {
+		panic(err)
+	}
+	return host
+}
+
+func saveLoadTestCSV(kemName, authName string, results map[int]*Result, elapsed, readThroughput, writeThroughput int64) {
 	var requests int64
 	var success int64
 	var networkFailed int64
@@ -112,11 +127,63 @@ func printResults(results map[int]*Result, startTime time.Time) {
 		badFailed += result.badFailed
 	}
 
-	elapsed := int64(time.Since(startTime).Seconds())
+	var fileName string
 
-	if elapsed == 0 {
-		elapsed = 1
+	if *pqtls {
+		if *cachedCert {
+			fileName = "csv/load_test_pqtls_cached_cert.csv"
+		} else {
+			fileName = "csv/load_test_pqtls.csv"
+		}		
+	} else {
+		if *cachedCert {
+			fileName = "csv/load_test_kemtls_pdk.csv"
+		} else {
+			fileName = "csv/load_test_kemtls.csv"
+		}		
 	}
+
+	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
+		csvFile, err := os.Create(fileName)
+		if err != nil {
+			panic(err)
+		}
+		csvwriter := csv.NewWriter(csvFile)
+
+		header := []string{"KEX", "Auth", "Number of clients", "Requests", "Successful requests", "Network failed", "Bad requests failed (!2xx)", "Successful requests rate (hits/sec)", "Read throughput (bytes/sec)", "Write throughput (bytes/sec)", "Test time (sec)"}
+		if err := csvwriter.Write(header); err != nil {
+			panic(err)
+		}
+		csvwriter.Flush()
+		csvFile.Close()		
+	}
+
+	csvFile, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		panic(err)
+	}
+	
+	csvwriter := csv.NewWriter(csvFile)
+	
+	arrayStr := []string{
+		kemName, authName,
+		fmt.Sprintf("%d", clients), 
+		fmt.Sprintf("%d", requests), 
+		fmt.Sprintf("%d", success), 
+		fmt.Sprintf("%d", networkFailed),
+		fmt.Sprintf("%d", badFailed),
+		fmt.Sprintf("%d", success/elapsed),
+		fmt.Sprintf("%d", readThroughput/elapsed),
+		fmt.Sprintf("%d", writeThroughput/elapsed),
+		fmt.Sprintf("%d", elapsed),
+	}
+
+	if err := csvwriter.Write(arrayStr); err != nil {
+		panic(err)
+	}
+
+	csvwriter.Flush()
+	csvFile.Close()
 
 	fmt.Println()
 	fmt.Printf("Requests:                       %10d hits\n", requests)
@@ -127,6 +194,22 @@ func printResults(results map[int]*Result, startTime time.Time) {
 	fmt.Printf("Read throughput:                %10d bytes/sec\n", readThroughput/elapsed)
 	fmt.Printf("Write throughput:               %10d bytes/sec\n", writeThroughput/elapsed)
 	fmt.Printf("Test time:                      %10d sec\n", elapsed)
+}
+
+
+
+func saveResultsAndNotifyServer(results map[int]*Result, startTime time.Time) {
+	elapsed := int64(time.Since(startTime).Seconds())
+
+	if elapsed == 0 {
+		elapsed = 1
+	}
+
+	saveLoadTestCSV(*kexAlgo, *authAlgo,  results, elapsed, readThroughput, writeThroughput)	
+	
+	if *synchronize {
+		notify("FINISHED", getHostFromURL(url), serverNotificationPort)    
+  }
 }
 
 func readLines(path string) (lines []string, err error) {
@@ -347,7 +430,18 @@ func client(configuration *Configuration, result *Result, done *sync.WaitGroup) 
 	done.Done()
 }
 
-func main() {
+func main() {	
+
+	flag.Parse()
+
+	// if *synchronize {
+	// 	if *cachedCert {
+	// 		waitNotification("CACHED CERT TEMP SERVER IS READY", *IPclient, clientNotificationPort)
+	// 	} else {
+	// 		waitNotification("SERVERS ARE READY", getHostFromURL(url), clientNotificationPort)
+	// 	}
+	// }
+	
 
 	startTime := time.Now()
 	var done sync.WaitGroup
@@ -357,13 +451,16 @@ func main() {
 	signal.Notify(signalChannel, os.Interrupt)
 	go func() {
 		_ = <-signalChannel
-		printResults(results, startTime)
+		saveResultsAndNotifyServer(results, startTime)
 		os.Exit(0)
 	}()
-
-	flag.Parse()
+	
 
 	configuration := NewConfiguration()
+
+	// if *synchronize && *cachedCert {
+	// 	waitNotification("SERVERS ARE READY", getHostFromURL(url), clientNotificationPort)
+	// }
 
 	goMaxProcs := os.Getenv("GOMAXPROCS")
 
@@ -382,5 +479,5 @@ func main() {
 	}
 	fmt.Println("Waiting for results...")
 	done.Wait()
-	printResults(results, startTime)
+	saveResultsAndNotifyServer(results, startTime)
 }

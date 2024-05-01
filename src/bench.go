@@ -281,7 +281,7 @@ func main() {
 
 	flag.Parse()	
 	benchmarkSignatures()
-	// benchmarkKEMs()
+	benchmarkKEMs()
 }
 
 func saveBenchmarkKEMsCsv(benchmarkResults []kemBenchmarkResult) {

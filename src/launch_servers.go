@@ -56,11 +56,9 @@ func startServerHybrid(clientMsg, serverMsg string, serverConfig *tls.Config, ip
 }
 
 func main() {
-	fmt.Println("Starting servers...")
+	fmt.Println("Starting servers...")	
+	fmt.Printf("Process PID is %d\n\n", os.Getpid())
 	
-	if *isHTTP {
-		fmt.Printf("Process PID is %d\n", os.Getpid())
-	}
 		
 	flag.Parse()
 
@@ -100,8 +98,6 @@ func main() {
 			if serverConfig == nil {
 				continue
 			}
-
-			wg.Add(1)
 			
 			//start		
 			fmt.Printf("Starting Hybrid KEMTLS server at %s:%s  |  KEX: %s  Auth: %s\n", *IPserver, strport, k, kAuth)
@@ -126,10 +122,8 @@ func main() {
 					continue
 				}
 
-				wg.Add(1)
 				//start
-
-				fmt.Printf("Starting Hybrid PQTLS server at %s:%s  |  KEX: %s  Auth: %s", *IPserver, strport, k, kAuth)
+				fmt.Printf("Starting Hybrid PQTLS server at %s:%s  |  KEX: %s  Auth: %s\n", *IPserver, strport, k, kAuth)
 
 				startServerHybrid(clientHSMsg, serverHSMsg, serverConfig, *IPserver, strport)
 
@@ -138,6 +132,16 @@ func main() {
 		}
 	}
 
-	wg.Wait() //endless but required
+	if *synchronize {		
+		if *isHTTP {
+			waitNotification("FINISHED", *IPserver, serverNotificationPort)		
+		} else {
+			waitNotification("FINISHED", *IPserver, serverNotificationPort)		
+			notify("SERVERS ARE READY", *IPclient, clientNotificationPort)
+		}	
+  } else {
+		wg.Add(1)
+		wg.Wait()
+	}
 }
 

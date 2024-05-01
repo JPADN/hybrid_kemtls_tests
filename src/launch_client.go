@@ -1,16 +1,23 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
-	"crypto/tls"
 )
-
 
 func main() {
 	flag.Parse()
+
+	if *synchronize {
+		waitNotification("SERVERS ARE READY", *IPclient, clientNotificationPort)
+	}
+	
+	fmt.Println("Starting clients...")
+	fmt.Printf("Process PID is %d\n", os.Getpid())
 
 	port := 4433
 		
@@ -191,4 +198,8 @@ func main() {
 		tlsPrintStatistics(algoResultsList)
 		fmt.Println("End of test.")
 	}
+
+	if *synchronize {
+		notify("FINISHED", *IPserver, serverNotificationPort)    
+  }
 }

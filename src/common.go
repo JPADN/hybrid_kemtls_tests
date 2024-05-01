@@ -32,6 +32,8 @@ var (
 	cachedCert = flag.Bool("cachedcert", false, "KEMTLS PDK or TLS(cached) server cert.")
 	isHTTP = flag.Bool("http", false, "HTTP server")
 	classicMcEliece = flag.Bool("classicmceliece", false, "Classic McEliece tests")
+	synchronize = flag.Bool("sync", true, "Synchronize the client and server execution. When the client finish" + 
+		"all experiments, it notifies the server that it has ended and the server end it's execution.")
 )
 
 var (
@@ -68,6 +70,9 @@ var (
 
 	clientHSMsg = "hello, server"
 	serverHSMsg = "hello, client"	
+	
+	serverNotificationPort = "9000"
+	clientNotificationPort = "9001"
 )
 
 // Initialize TLS configuration and certificate chain for client/server
@@ -631,9 +636,56 @@ func launchHTTPSServer(serverConfig *tls.Config, port string) {
 		TLSConfig: serverConfig,
 	}
 
-	err := server.ListenAndServeTLS("", "")
+	go server.ListenAndServeTLS("", "")	
+}
+
+func notify(message, ip, port string) {	
+	fmt.Println("Notifiying...")
+	var connectionServer net.Conn
+	var err error
 	
+	for {
+		connectionServer, err = net.Dial("tcp", ip + ":" + port)               
+		
+		if connectionServer != nil && err == nil {
+			break
+		}
+		
+		time.Sleep(5 * time.Second)
+	} 
+		
+	_, err = connectionServer.Write([]byte(message))
 	if err != nil {
-			log.Fatal("ListenAndServe: ", err)
+		panic(err)
+	}   
+			
+	connectionServer.Close()
+}
+
+func waitNotification(expectedMessage, ip, port string) {
+	fmt.Println("Waiting for " + expectedMessage + " ...")	
+
+	server, err := net.Listen("tcp", ip + ":" + port)
+	if err != nil {
+		panic(err)
 	}
+	
+	defer server.Close()  
+	
+	connection, err := server.Accept()
+	if err != nil {
+		panic(err)
+	}
+	
+	buffer := make([]byte, len([]byte(expectedMessage)))
+	
+	_, err = connection.Read(buffer)
+	if err != nil {
+		panic(err)
+	}
+
+	if string(buffer) != expectedMessage {
+		panic("Received message does not match expected message")     
+	}
+	connection.Close()
 }
