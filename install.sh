@@ -38,14 +38,17 @@ export PATH=$PATH:/usr/local/go/bin
 cd ${GO_KEMTLS_ROOT}/src
 . make.bash
 
-export PATH=${GO_KEMTLS_ROOT}/bin:$PATH
-
-echo "'${GO_KEMTLS_ROOT}/bin' was appended temporarily to PATH, to make it permanent append the following in your ~/.profile:
-export PATH=\${GO_KEMTLS_ROOT}/bin:$PATH
-"
-
+export GO_KEMTLS_ROOT=~/go-kemtls && \
+export WORKING_DIR=~/hybrid_kemtls_tests && \
+export PATH=${GO_KEMTLS_ROOT}/bin:$PATH && \
 echo "
 export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/local/lib
 export PKG_CONFIG_PATH=\$PKG_CONFIG_PATH:${WORKING_DIR}/liboqs-go/.config
 export PATH=${GO_KEMTLS_ROOT}/bin:\$PATH
 " | tee -a ~/.bashrc ~/.profile
+
+
+echo "'${GO_KEMTLS_ROOT}/bin' was appended temporarily to PATH, to make it permanent append the following in your ~/.profile:
+export PATH=\${GO_KEMTLS_ROOT}/bin:$PATH
+"
+

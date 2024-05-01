@@ -1,0 +1,24 @@
+# Configuration script for the server.sh and client.sh scripts.
+# Configure here the experiments parameters
+
+NUM_HANDSHAKES=5
+BENCHMARK_REPS=5
+HYBRID_ROOT=dilithium
+SERVER_IP=127.0.0.1
+CLIENT_IP=127.0.0.1
+LOAD_TEST_URL=https://${SERVER_IP}:4433
+# Load test experiments parameters
+NUM_CLIENTS_LIST=(5 8 10)
+LOAD_TEST_SECONDS=3
+
+# Experiments enabled
+EXP_BENCHMARK=false
+EXP_HYBRID_KEMTLS=false
+EXP_HYBRID_PQTLS=false
+EXP_HYBRID_KEMTLS_PDK=false
+EXP_HYBRID_KEMTLS_PDK_CLASSIC_MCELIECE=false
+EXP_HYBRID_PQTLS_CACHED_CERTS=false
+EXP_HYBRID_KEMTLS_LOAD_TEST=false
+EXP_HYBRID_KEMTLS_PDK_LOAD_TEST=true
+EXP_HYBRID_PQTLS_LOAD_TEST=false
+EXP_HYBRID_PQTLS_CACHED_CERT_LOAD_TEST=true
