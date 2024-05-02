@@ -665,7 +665,7 @@ func notify(message, ip, port string) {
 func waitNotification(expectedMessage, ip, port string) {
 	fmt.Println("Waiting for " + expectedMessage + " ...")	
 
-	server, err := net.Listen("tcp", ip + ":" + port)
+	server, err := net.Listen("tcp", "127.0.0.1:" + port)
 	if err != nil {
 		panic(err)
 	}
