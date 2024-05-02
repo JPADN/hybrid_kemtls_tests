@@ -2,6 +2,7 @@
 *.pem
 *.crt
 *.key
+*.out
 
 src/graphs/*.pdf
 src/graphs/*.html
