@@ -136,8 +136,8 @@ func main() {
 		if *isHTTP {
 			waitNotification("FINISHED", *IPserver, serverNotificationPort)		
 		} else {
-			waitNotification("FINISHED", *IPserver, serverNotificationPort)		
 			notify("SERVERS ARE READY", *IPclient, clientNotificationPort)
+			waitNotification("FINISHED", *IPserver, serverNotificationPort)					
 		}	
   } else {
 		wg.Add(1)
