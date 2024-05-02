@@ -4,8 +4,6 @@
 NUM_HANDSHAKES=5
 BENCHMARK_REPS=5
 HYBRID_ROOT=dilithium
-SERVER_IP=127.0.0.1
-CLIENT_IP=127.0.0.1
 
 # Load test experiments parameters
 NUM_CLIENTS_LIST=(5 8 10)
