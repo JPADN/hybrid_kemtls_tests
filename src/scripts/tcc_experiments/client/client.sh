@@ -1,7 +1,7 @@
 #!/bin/bash
-source config.sh
+source ../config.sh
 
-cd ../..
+cd ../../..
 
 if $EXP_HYBRID_KEMTLS; then
   printf "\nExperiment: Hybrid KEMTLS\n\n"
@@ -10,8 +10,7 @@ if $EXP_HYBRID_KEMTLS; then
   -ipserver $SERVER_IP \
   -ipclient $CLIENT_IP \
   -handshakes $NUM_HANDSHAKES \
-  -hybridroot $HYBRID_ROOT \
-  -resultcsv csv/kemtls-client.csv
+  -hybridroot $HYBRID_ROOT
 fi
 
 if $EXP_HYBRID_PQTLS; then
@@ -22,8 +21,7 @@ if $EXP_HYBRID_PQTLS; then
   -ipclient $CLIENT_IP \
   -handshakes $NUM_HANDSHAKES \
   -hybridroot $HYBRID_ROOT \
-  -pqtls \
-  -resultcsv csv/pqtls-client.csv
+  -pqtls
 fi
 
 if $EXP_HYBRID_KEMTLS_PDK; then
@@ -34,8 +32,7 @@ if $EXP_HYBRID_KEMTLS_PDK; then
   -ipclient $CLIENT_IP \
   -handshakes $NUM_HANDSHAKES \
   -hybridroot $HYBRID_ROOT \
-  -cachedcert \
-  -resultcsv csv/kemtls-pdk-client.csv
+  -cachedcert  
 fi
 
 if $EXP_HYBRID_KEMTLS_PDK_CLASSIC_MCELIECE; then
@@ -47,8 +44,7 @@ if $EXP_HYBRID_KEMTLS_PDK_CLASSIC_MCELIECE; then
   -handshakes $NUM_HANDSHAKES \
   -hybridroot $HYBRID_ROOT \
   -cachedcert \
-  -classicmceliece \
-  -resultcsv csv/kemtls-pdk-classic-mceliece-client.csv
+  -classicmceliece
 fi
 
 
@@ -61,8 +57,7 @@ if $EXP_HYBRID_PQTLS_CACHED_CERTS; then
   -handshakes $NUM_HANDSHAKES \
   -hybridroot $HYBRID_ROOT \
   -pqtls \
-  -cachedcert \
-  -resultscsv csv/pqtls-cached-cert-client.csv
+  -cachedcert
 fi
 
 if $EXP_HYBRID_KEMTLS_LOAD_TEST; then

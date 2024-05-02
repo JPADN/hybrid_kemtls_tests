@@ -1,7 +1,7 @@
 #!/bin/bash
-source config.sh
+source ../config.sh
 
-cd ../..
+cd ../../..
 
 
 if $EXP_HYBRID_KEMTLS; then
