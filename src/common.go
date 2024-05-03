@@ -399,8 +399,8 @@ func initClient(kexAlgo tls.CurveID, certAlgo interface{}, intCACert *x509.Certi
 	return ccfg
 }
 
-func newLocalListener(ip string, port string) net.Listener {
-	ln, err := net.Listen("tcp", ip+":"+port)
+func newLocalListener(port string) net.Listener {
+	ln, err := net.Listen("tcp", "0.0.0.0:"+port)
 	if err != nil {
 		ln, err = net.Listen("tcp6", "[::1]:0")
 	}
@@ -441,7 +441,7 @@ func testConnHybrid(clientMsg, serverMsg string, tlsConfig *tls.Config, peer str
 
 		countConnections := 0
 
-		ln := newLocalListener(ipserver, port)
+		ln := newLocalListener(port)
 		defer ln.Close()
 
 		ignoreFirstConn := false
@@ -662,10 +662,10 @@ func notify(message, ip, port string) {
 	connectionServer.Close()
 }
 
-func waitNotification(expectedMessage, ip, port string) {
+func waitNotification(expectedMessage, port string) {
 	fmt.Println("Waiting for " + expectedMessage + " ...")	
 
-	server, err := net.Listen("tcp", "127.0.0.1:" + port)
+	server, err := net.Listen("tcp", "0.0.0.0:" + port)
 	if err != nil {
 		panic(err)
 	}

@@ -14,9 +14,9 @@ var wg sync.WaitGroup
 
 // Launches a temporary TLS server to be used by the gobench client in order to obtain the server certificate
 // preliminarily to the HTTP load test
-func launchTempServer(tlsConfig *tls.Config, clientMsg, serverMsg, ipserver, port string) {	
+func launchTempServer(tlsConfig *tls.Config, clientMsg, serverMsg, port string) {	
 
-	ln := newLocalListener(ipserver, port)
+	ln := newLocalListener(port)
 	defer ln.Close()
 
 	serverConn, err := ln.Accept()
@@ -35,7 +35,7 @@ func launchTempServer(tlsConfig *tls.Config, clientMsg, serverMsg, ipserver, por
 }
 
 // wrapper function to start a server in each port
-func startServerHybrid(clientMsg, serverMsg string, serverConfig *tls.Config, ipserver string, port string) {	
+func startServerHybrid(clientMsg, serverMsg string, serverConfig *tls.Config, port string) {	
 	if *isHTTP {
 		if *cachedCert {
 			portInt, err := strconv.Atoi(port)
@@ -46,11 +46,11 @@ func startServerHybrid(clientMsg, serverMsg string, serverConfig *tls.Config, ip
 			portInt = portInt + 1
 			portTemp := strconv.Itoa(portInt)
 
-			launchTempServer(serverConfig, clientHSMsg, serverHSMsg, ipserver, portTemp)
+			launchTempServer(serverConfig, clientHSMsg, serverHSMsg, portTemp)
 		}
 		launchHTTPSServer(serverConfig, port)
 	} else {
-		go testConnHybrid(clientMsg, serverMsg, serverConfig, "server", ipserver, port)
+		go testConnHybrid(clientMsg, serverMsg, serverConfig, "server", "", port)
 	}
 	
 }
@@ -102,7 +102,7 @@ func main() {
 			//start		
 			fmt.Printf("Starting Hybrid KEMTLS server at %s:%s  |  KEX: %s  Auth: %s\n", *IPserver, strport, k, kAuth)
 			
-			startServerHybrid(clientHSMsg, serverHSMsg, serverConfig, *IPserver, strport)
+			startServerHybrid(clientHSMsg, serverHSMsg, serverConfig, strport)
 
 			port++
 		}
@@ -125,7 +125,7 @@ func main() {
 				//start
 				fmt.Printf("Starting Hybrid PQTLS server at %s:%s  |  KEX: %s  Auth: %s\n", *IPserver, strport, k, kAuth)
 
-				startServerHybrid(clientHSMsg, serverHSMsg, serverConfig, *IPserver, strport)
+				startServerHybrid(clientHSMsg, serverHSMsg, serverConfig, strport)
 
 				port++
 			}
@@ -134,10 +134,10 @@ func main() {
 
 	if *synchronize {		
 		if *isHTTP {
-			waitNotification("FINISHED", *IPserver, serverNotificationPort)		
+			waitNotification("FINISHED", serverNotificationPort)		
 		} else {
 			notify("SERVERS ARE READY", *IPclient, clientNotificationPort)
-			waitNotification("FINISHED", *IPserver, serverNotificationPort)					
+			waitNotification("FINISHED", serverNotificationPort)					
 		}	
   } else {
 		wg.Add(1)

@@ -13,7 +13,7 @@ func main() {
 	flag.Parse()
 
 	if *synchronize {
-		waitNotification("SERVERS ARE READY", *IPclient, clientNotificationPort)
+		waitNotification("SERVERS ARE READY", clientNotificationPort)
 	}
 	
 	fmt.Println("Starting clients...")

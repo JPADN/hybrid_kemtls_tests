@@ -436,9 +436,9 @@ func main() {
 
 	// if *synchronize {
 	// 	if *cachedCert {
-	// 		waitNotification("CACHED CERT TEMP SERVER IS READY", *IPclient, clientNotificationPort)
+	// 		waitNotification("CACHED CERT TEMP SERVER IS READY", clientNotificationPort)
 	// 	} else {
-	// 		waitNotification("SERVERS ARE READY", getHostFromURL(url), clientNotificationPort)
+	// 		waitNotification("SERVERS ARE READY", clientNotificationPort)
 	// 	}
 	// }
 	
@@ -459,7 +459,7 @@ func main() {
 	configuration := NewConfiguration()
 
 	// if *synchronize && *cachedCert {
-	// 	waitNotification("SERVERS ARE READY", getHostFromURL(url), clientNotificationPort)
+	// 	waitNotification("SERVERS ARE READY", clientNotificationPort)
 	// }
 
 	goMaxProcs := os.Getenv("GOMAXPROCS")
