@@ -55,9 +55,10 @@ var classicKEMAlgorithms = []string{
 }
 
 var benchmarkKEMAlgorithms = []string {	 
-	"KEM_P256", "P256_Kyber512", "P256_HQC_128", "P256_BIKE_L1", "P256_Classic_McEliece_348864",
-	"KEM_P384",	"P384_Kyber768", "P384_HQC_192", "P384_BIKE_L3", "P384_Classic_McEliece_460896",
-	"KEM_P521", "P521_Kyber1024", "P521_BIKE_L5", "P521_Classic_McEliece_6688128",
+	"P521_HQC_256",
+	// "KEM_P256", "P256_Kyber512", "P256_HQC_128", "P256_BIKE_L1", "P256_Classic_McEliece_348864",
+	// "KEM_P384",	"P384_Kyber768", "P384_HQC_192", "P384_BIKE_L3", "P384_Classic_McEliece_460896",
+	// "KEM_P521", "P521_Kyber1024", "P521_HQC_256", "P521_BIKE_L5", "P521_Classic_McEliece_6688128",
 }
 
 var benchmarkSignatureAlgorithms = []string {	 
@@ -280,7 +281,7 @@ func benchmarkKEMs() {
 func main() {
 
 	flag.Parse()	
-	benchmarkSignatures()
+	// benchmarkSignatures()
 	benchmarkKEMs()
 }
 
