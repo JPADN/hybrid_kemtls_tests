@@ -1,4 +1,3 @@
-*.csv
 *.pem
 *.crt
 *.key
@@ -21,3 +20,5 @@ clean.sh
 debug.sh
 
 vm_script.sh
+
+src/csv/*.csv
